@@ -1,0 +1,61 @@
+#+TITLE: Notes
+
+* Buffer access flowchart
+
+The real question is what can IRQs do to the buffer?
+
+if buffer is being written to, is there a flag?
+
+main() -> sets write flag, starts writing to buffer
+IRQ -> should only send if there's no buffer writing
+
+Another idea is to not IRQ interact with buffer at all.
+
+* Packet Sending Strategy
+Let Serial library handle all the details, send item as soon as one is recieved on the main loop.
+
+* Packet Processing Strategy
+Also depends on the way the composer sends bytes, and what kind of commands the composer needs to send.
+
+** Commands
+*** Change effects and effect data
+Could set up a display editing mode on a timeout to have the keypad focus on updating the variables with instant feedback.
+Send a 'keep going' packet every like 2 seconds with a 3~4s timeout on the hardware side. With a confirm 'finished' packet to keep the unloading snappy.
+
+*** Data for screen
+Live data streamed from the composter, variables only - preferably numbers only.
+
+In 64 bytes, we can get up to 16 full integers from the desktop, take it down to 12 if they are tagged with 1byte addresses - with 4 bytes to spare for something else.
+
+* Display Library
+The display uses an ILI9431 driver, with a 240x320 resolution. Support at this point by the Adafruit GFX library. We chose this because it is well supported by the community with two well developed libraries, and the display itself being relatively easy to obtain.
+
+Customizing the display layouts will require some additional work on top of the libraries. At the very least, an intermediate API is needed to capture more complex graphical elements as collections of graphical primitives provided by the adafruit library. For example the intermediate API could provide a volume meter with customizable animations/colors/etc., while in the code itself it is implemented by building the complex shape from primitives availble from Adafruit's library.
+
+Currently there's not enough memory on the teensy to fully save images.
+
+* Custom shapes
+The firmware is all C code, which means that generating 'custom' graphic elements will require the firmware to accept preset commands with a high level of customization, or the firmware to include an interpreter for the graphics library and translate it on-the-fly to graphic elements. This is a very hacky way of providing programmability.
+
+If the layouts are somewhat fixed, then the variables for position/size/colour etc. can be easily reset from the serial line. The only issue is to change the layout itself in terms of objects present - that would be very difficult without recompiling and uploading.
+
+A different idea is to leverage HalfKay to dynamically inject code. It will be extremely fast, but it will also directly open up a backdoor for plugin authors to access the firmware. To be fair, with the amount of open code in the system, it's not very difficult to do so.
+
+A third idea is to simply have the layouts be extensible through recompiling and uploading - a bit more effort required to package a whole teensyduino distribution, but less deep dive into firmware required - and the user gets to have full freedom to get whatever they want loaded.
+
+
+* Input Event Encode and Addressing
+
+tl;dr: Addressing is determined by module, encoding is also determined by module
+** Core Module
+*** Addressing
+- 0x0 ~ 0x0F is buttons (0-15)
+- 0x10 ~ 0x13 is dials (16~19)
+
+*** Encoding
+Buttons: 1byte, repeated
+rising edge - 0101 0101
+falling edge - 1010 1010
+held - 1111 1111
+open - 0000 0000
+

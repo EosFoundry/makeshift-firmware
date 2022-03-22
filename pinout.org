@@ -1,0 +1,35 @@
+#+TITLE: Pinout
+* COMMENT Pinout table
+
+| Pin number | Component      | Purpose         | I/O | Hardware Capability |
+|------------+----------------+-----------------+-----+---------------------|
+|          0 |                | LED Enable      | I   | RX1, CRX2           |
+|          1 |                | LED Signal      | I   | TX1, CTX2           |
+|          2 | Key matrix     | key matrix poll | O   |                     |
+|          3 | Key matrix     | key matrix poll | O   |                     |
+|          4 | Key matrix     | key matrix poll | O   |                     |
+|          5 | Key matrix     | key matrix poll | O   |                     |
+|          6 | Encoder        | Enc3            |     |                     |
+|          7 | Encoder        | Enc3            | I   | RX2                 |
+|          8 |                |                 | I   | TX2                 |
+|          9 | Screen         | D/C             | I   |                     |
+|         10 | Screen         | CS              |     | CS                  |
+|         11 | Screen + Touch | SDI             |     | MOSI                |
+|         12 | Screen + Touch | SDO             |     | MISO                |
+|         13 | Screen + Touch | SCK             |     | SCK                 |
+|         14 | Encoder        | Enc0            | I   |                     |
+|         15 | Encoder        | Enc0            | I   |                     |
+|         16 | Encoder        | Enc1            | I   | SCL1                |
+|         17 | Encoder        | Enc1            | I   | SDA1                |
+|         18 | Encoder        | Enc2            | I   | SDA0                |
+|         19 | Encoder        | Enc2            | I   | SCL0                |
+|         20 | Key matrix     | key matrix scan | I   |                     |
+|         21 | Key matrix     | key matrix scan | I   |                     |
+|         22 | Key matrix     | key matrix scan | I   |                     |
+|         23 | Key matrix     | key matrix scan | I   |                     |
+|------------+----------------+-----------------+-----+---------------------|
+|         24 | Touch          | T_IRQ           | I   |                     |
+|         25 | Touch          | T_CS            | I   |                     |
+|         26 | unused         | Enc3            | I   |                     |
+|         27 | unused         | Enc3            | I   |                     |
+#+TBLFM: $1=(@-1)+1

@@ -1,0 +1,12 @@
+.pio
+.vscode/
+.dir-locals.el
+.ccls-cache/
+.ccls
+
+documentation/build/
+documentation/source/_*
+documentation/source/html/
+documentation/source/latex/
+documentation/source/xml/
+
