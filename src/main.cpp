@@ -102,7 +102,7 @@ IntervalTimer hwUpdateTimer;
 /**
    * This constant defines the scanning period in milliseconds.
    */
-const long timer1PeriodMs = 4L;
+const long timer1PeriodUs = 4L;
 
 core::state_t stateCurr;
 core::state_t statePrev;
@@ -134,7 +134,7 @@ void setup()
   core::init();
 #endif
 
-  hwUpdateTimer.begin(updateState, timer1PeriodMs * 1000);
+  hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
 
   delay(100);
 
