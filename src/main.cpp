@@ -38,29 +38,33 @@ void printlnDialState(core::state_t states, byte dialAddress)
 
 void printStateToSerial(core::state_t states)
 {
-  Serial.print("states: ");
-  for (int i = 0; i < 1; i++)
-  {
-    Serial.print(states.button[i]);
-    Serial.print(' ');
-  }
-  Serial.print("| ");
+  // Serial.print("states: ");
+  // for (int i = 0; i < 16; i++)
+  // {
+  //   Serial.print(states.button[i]);
+  //   Serial.print(' ');
+  // }
+  // Serial.print("| ");
 
-  Serial.print("ext: ");
-  for (int i = 0; i < 1; i++)
+  // Serial.print("ext: ");
+  for (int i = 0; i < 16; i++)
   {
+    if (i%4) {}
+    else {
+      Serial.println();
+    }
     Serial.print(states.buttonExtended[i], BIN);
     Serial.print(' ');
   }
-  Serial.print("| ");
+  // Serial.print("| ");
 
-  Serial.print("dials: ");
-  for (int i = 0; i < core::szDialArray; i++)
-  {
-    Serial.print(states.dial[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
+  // Serial.print("dials: ");
+  // for (int i = 0; i < core::szDialArray; i++)
+  // {
+  //   Serial.print(states.dial[i]);
+  //   Serial.print(' ');
+  // }
+  // Serial.println();
 }
 
 byte printBuffer64(byte *buffer)
@@ -157,10 +161,11 @@ void loop()
 
     if (lastEdge != 0)
     {
-      sendItem(
-       core::generateItem(lastEdge, i)
-      );
+      // sendItem(
+      //  core::generateItem(lastEdge, i)
+      // );
     }
   }
-  // delay(150);
+  printStateToSerial(stateCurr);
+  delay(49);
 }

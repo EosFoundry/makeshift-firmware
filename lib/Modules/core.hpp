@@ -11,10 +11,10 @@ namespace core
     const uint8_t pinI2c_SDA = 18;
     const uint8_t pinI2c_SCL = 19;
 
-    const uint8_t pinMatrixPoll_A = 1;
-    const uint8_t pinMatrixPoll_B = 2;
-    const uint8_t pinMatrixPoll_C = 3;
-    const uint8_t pinMatrixPoll_D = 4;
+    const uint8_t pinMatrixPoll_A = 2;
+    const uint8_t pinMatrixPoll_B = 3;
+    const uint8_t pinMatrixPoll_C = 4;
+    const uint8_t pinMatrixPoll_D = 5;
 
     const uint8_t pinMatrixScan_0 = 20;
     const uint8_t pinMatrixScan_1 = 21;
