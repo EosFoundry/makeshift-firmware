@@ -38,33 +38,29 @@ void printlnDialState(core::state_t states, byte dialAddress)
 
 void printStateToSerial(core::state_t states)
 {
-  // Serial.print("states: ");
-  // for (int i = 0; i < 16; i++)
-  // {
-  //   Serial.print(states.button[i]);
-  //   Serial.print(' ');
-  // }
-  // Serial.print("| ");
-
-  // Serial.print("ext: ");
+  Serial.print("states: ");
   for (int i = 0; i < 16; i++)
   {
-    if (i%4) {}
-    else {
-      Serial.println();
-    }
-    Serial.print(states.buttonExtended[i], BIN);
+    Serial.print(states.button[i]);
     Serial.print(' ');
   }
-  // Serial.print("| ");
+  Serial.print("| ");
 
-  // Serial.print("dials: ");
-  // for (int i = 0; i < core::szDialArray; i++)
+  // Serial.print("ext: ");
+  // for (int i = 0; i < 16; i++)
   // {
-  //   Serial.print(states.dial[i]);
+  //   Serial.print(states.buttonExtended[i], BIN);
   //   Serial.print(' ');
   // }
-  // Serial.println();
+  // Serial.print("| ");
+
+  Serial.print("dials: ");
+  for (int i = 0; i < core::szDialArray; i++)
+  {
+    Serial.print(states.dial[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
 }
 
 byte printBuffer64(byte *buffer)
@@ -167,5 +163,5 @@ void loop()
     }
   }
   printStateToSerial(stateCurr);
-  delay(49);
+  delay(149);
 }

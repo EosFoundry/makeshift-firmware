@@ -94,7 +94,8 @@ namespace core
     bool currState = false;
     for (uint8_t p = 0; p < szMatrixPollArray; p++)
     {
-      digitalWrite(pollPins[p], 1);
+      digitalWrite(pollPins[p], HIGH);
+      delayMicroseconds(10);
       for (uint8_t s = 0; s < szMatrixScanArray; s++)
       {
         prevState = buttonState[currButton];
@@ -233,7 +234,7 @@ namespace core
         // Serial.println(buttonExtendedState[0], BIN);
         currButton++;
       }
-      digitalWrite(pollPins[p], 0);
+      digitalWrite(pollPins[p], LOW);
     }
     return;
   }
@@ -328,7 +329,7 @@ namespace core
 
     for (int i = 0; i < szMatrixScanArray; i++)
     {
-      pinMode(scanPins[i], INPUT);
+      pinMode(scanPins[i], INPUT_PULLDOWN);
     }
     Serial.println("Successfully initiated scanning pins and Encoder objects");
   }
