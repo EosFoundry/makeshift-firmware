@@ -4,6 +4,7 @@
 #include <avr/interrupt.h>
 #include <core.hpp>
 #include <dkEvent.hpp>
+#include <Adafruit_NeoPixel.h>
 
 #ifdef DEBUG
 void printButtonState(core::state_t states, byte buttonAddress)
@@ -109,6 +110,11 @@ core::state_t statePrev;
 
 int attachedDevices = 0;
 
+const int LED_PIN = 6;
+const int LED_ON = 0;
+
+Adafruit_NeoPixel strip(16, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 // volatile std::queue<dkEvent::Event> eventQueue;
 
 void updateState()
@@ -130,38 +136,48 @@ void sendItem(core::item_t item)
 
 void setup()
 {
-#ifdef CORE_H_
-  core::init();
-#endif
+  pinMode(LED_ON, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_ON, HIGH);
+  
+  strip.begin();
+  strip.show();
 
-  hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
+  strip.setPixelColor(1, 255, 0, 255);
+  strip.show();
+  
+// #ifdef CORE_H_
+//   core::init();
+// #endif
 
-  delay(100);
+//   hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
 
-  //TODO - initialize data sizes for each module in memory
+//   delay(100);
+
+//   //TODO - initialize data sizes for each module in memory
 }
 
 void loop()
 {
-  statePrev = stateCurr;
-  stateCurr = core::getState();
+  // statePrev = stateCurr;
+  // stateCurr = core::getState();
 
-  // TODO: move this code into core.cpp, keep main readable?
-  for (int i = 0; i < core::szButtonArray; i++)
-  {
-    uint8_t lastEdge = 0;
-    cli();
-    lastEdge = core::buttonEdgeEventQueue[i] & 0b00000011; //grab the last two digits
-    core::buttonEdgeEventQueue[i] = core::buttonEdgeEventQueue[i] >> 2;
-    sei();
+  // // TODO: move this code into core.cpp, keep main readable?
+  // for (int i = 0; i < core::szButtonArray; i++)
+  // {
+  //   uint8_t lastEdge = 0;
+  //   cli();
+  //   lastEdge = core::buttonEdgeEventQueue[i] & 0b00000011; //grab the last two digits
+  //   core::buttonEdgeEventQueue[i] = core::buttonEdgeEventQueue[i] >> 2;
+  //   sei();
 
-    if (lastEdge != 0)
-    {
-      // sendItem(
-      //  core::generateItem(lastEdge, i)
-      // );
-    }
-  }
-  printStateToSerial(stateCurr);
-  delay(149);
+  //   if (lastEdge != 0)
+  //   {
+  //     // sendItem(
+  //     //  core::generateItem(lastEdge, i)
+  //     // );
+  //   }
+  // }
+  // printStateToSerial(stateCurr);
+  // delay(149);
 }
