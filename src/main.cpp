@@ -1,10 +1,16 @@
 #define DEBUG 1
+// std library
+#include <queue>
+
+// External libraries
 #include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+
+// MakeShift libraries
 #include <core.hpp>
+#include <led.hpp>
 #include <dkEvent.hpp>
-#include <Adafruit_NeoPixel.h>
 
 #ifdef DEBUG
 void printButtonState(core::state_t states, byte buttonAddress)
@@ -94,15 +100,16 @@ byte printBuffer64(byte *buffer)
 const char *boardName = "Toaster";
 
 /*
-  * Packet counter to keep input and output on pace
-  */
+ * Packet counter to keep input and output on pace
+ */
 unsigned int packetCount = 0;
 
 IntervalTimer hwUpdateTimer;
+IntervalTimer ledUpdateTimer;
 
 /**
-   * This constant defines the scanning period in milliseconds.
-   */
+ * This constant defines the scanning period in milliseconds.
+ */
 const long timer1PeriodUs = 4L;
 
 core::state_t stateCurr;
@@ -110,17 +117,16 @@ core::state_t statePrev;
 
 int attachedDevices = 0;
 
-const int LED_PIN = 6;
-const int LED_ON = 0;
-
-Adafruit_NeoPixel strip(16, LED_PIN, NEO_GRB + NEO_KHZ800);
-
 // volatile std::queue<dkEvent::Event> eventQueue;
 
 void updateState()
 {
 #ifdef CORE_H_
   core::updateState();
+#endif
+
+#ifdef LED_H_
+  mkshft_led::updateState();
 #endif
 }
 
@@ -136,48 +142,52 @@ void sendItem(core::item_t item)
 
 void setup()
 {
-  pinMode(LED_ON, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_ON, HIGH);
-  
-  strip.begin();
-  strip.show();
 
-  strip.setPixelColor(1, 255, 0, 255);
-  strip.show();
-  
-// #ifdef CORE_H_
-//   core::init();
-// #endif
+#ifdef CORE_H_
+  core::init();
+#endif
+#ifdef LED_H_
+  mkshft_led::init();
+#endif
 
-//   hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
+  hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
 
-//   delay(100);
+  delay(100);
 
-//   //TODO - initialize data sizes for each module in memory
+  // TODO - initialize data sizes for each module in memory
 }
+
+uint8_t stateDelta = 0;
+bool stateChanged = false;
 
 void loop()
 {
-  // statePrev = stateCurr;
-  // stateCurr = core::getState();
+  statePrev = stateCurr;
+  stateCurr = core::getState();
 
-  // // TODO: move this code into core.cpp, keep main readable?
-  // for (int i = 0; i < core::szButtonArray; i++)
-  // {
-  //   uint8_t lastEdge = 0;
-  //   cli();
-  //   lastEdge = core::buttonEdgeEventQueue[i] & 0b00000011; //grab the last two digits
-  //   core::buttonEdgeEventQueue[i] = core::buttonEdgeEventQueue[i] >> 2;
-  //   sei();
-
-  //   if (lastEdge != 0)
-  //   {
-  //     // sendItem(
-  //     //  core::generateItem(lastEdge, i)
-  //     // );
-  //   }
-  // }
-  // printStateToSerial(stateCurr);
-  // delay(149);
+  // check button states
+  for (int i = 0; i < core::szButtonArray; i++)
+  {
+    if (statePrev.button[i] != stateCurr.button[i])
+    {
+      stateChanged = true;
+    }
+  }
+  // check dial states
+  for (int i = 0; i < core::szDialArray; i++)
+  {
+    if (statePrev.dial[i] != stateCurr.dial[i])
+    {
+      stateChanged = true;
+    }
+  }
+  // send updates
+  if (stateChanged == true)
+  {
+    // sendItem(
+    //  core::generateItem(stateDelta, i)
+    // );
+    printStateToSerial(stateCurr);
+  }
+  stateChanged = false;
 }
