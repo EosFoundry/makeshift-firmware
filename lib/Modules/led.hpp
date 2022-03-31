@@ -12,6 +12,7 @@ namespace mkshft_led
 
     const uint8_t RowSz = 4;
     const uint8_t ColSz = 4;
+
     const uint32_t refreshDelta = 1;
     const uint32_t frames = 1;
 
@@ -39,8 +40,7 @@ namespace mkshft_led
         bool on;
     };
 
-    Adafruit_NeoPixel strip(RowSz *ColSz, LED_PIN, NEO_GRB + NEO_KHZ800);
-    Pixel ledMatrix[RowSz][ColSz];
+    extern Pixel ledMatrix[RowSz][ColSz];
 
     void init();
     void updateState();

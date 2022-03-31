@@ -2,6 +2,9 @@
 
 namespace mkshft_led
 {
+    Adafruit_NeoPixel strip(RowSz * ColSz, LED_PIN, NEO_GRB + NEO_KHZ800);
+    Pixel ledMatrix[RowSz][ColSz];
+
     void updateState()
     {
         for (int r = 0; r < RowSz; r++)
@@ -88,7 +91,6 @@ namespace mkshft_led
         strip.show();
         delay(1000);
         Serial.println("pushing events to colorQueue");
-        const int frames = 2;
         for (uint16_t j = 0; j < 256; j++)
         {
             ColorEvent e = {j, 0, j, frames};
