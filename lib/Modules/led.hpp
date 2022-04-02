@@ -9,6 +9,9 @@ namespace mkshft_led
 
     const uint8_t LED_PIN = 6;
     const uint8_t LED_ON = 0;
+    
+    const bool ROW = 0;
+    const bool COL = 1;
 
     const uint8_t RowSz = 4;
     const uint8_t ColSz = 4;
@@ -16,11 +19,20 @@ namespace mkshft_led
     const uint32_t refreshDelta = 1;
     const uint32_t frames = 1;
 
+    // Lookup table for strip number given row + col
     const uint8_t MatrixLookup[RowSz][ColSz] = {
         {3, 2, 1, 0},
         {4, 5, 6, 7},
         {11, 10, 8, 9},
         {12, 13, 14, 15},
+    };
+    
+    // Lookup table for row + col given strip number
+    const uint8_t StripLookup[RowSz*ColSz][2] = {
+        {0,3}, {0,2}, {0,1}, {0,0},
+        {1,0}, {1,1}, {1,2}, {1,3},
+        {2,3}, {2,2}, {2,1}, {2,0},
+        {3,0}, {3,1}, {3,2}, {3,3}
     };
 
     struct ColorEvent
@@ -29,6 +41,7 @@ namespace mkshft_led
         uint8_t g;
         uint8_t b;
         uint32_t lengthFrames;
+        bool adjusted;
     };
 
     struct Pixel
@@ -44,14 +57,16 @@ namespace mkshft_led
 
     void init();
     void updateState();
-    void addFrame(ColorEvent frame[RowSz][ColSz]);
 
-    void colorPixelAdjusted(uint8_t row, uint8_t col,
-                            uint8_t r, uint8_t g, uint8_t b);
+
+    void clear(uint8_t row, uint8_t col);
 
     void colorPixel(uint8_t row, uint8_t col,
                     uint8_t r, uint8_t g, uint8_t b);
 
+    void applyToMatrix(void (*apply)(uint8_t, uint8_t));
+
+    void printPixel(uint8_t n);
     void printPixel(uint8_t r, uint8_t c);
 
     const uint8_t gamma8[] = {

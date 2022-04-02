@@ -142,14 +142,18 @@ void sendItem(core::item_t item)
 
 void setup()
 {
+  Serial.begin(42069);
+  // delay for serial monitor
+  delay(4000); 
 
 #ifdef CORE_H_
   core::init();
 #endif
-  
+
 #ifdef LED_H_
   mkshft_led::init();
 #endif
+  delay(420);
 
   hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
 
