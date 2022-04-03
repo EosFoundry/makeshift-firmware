@@ -35,11 +35,14 @@ namespace mkshft_led
         {3,0}, {3,1}, {3,2}, {3,3}
     };
 
-    struct ColorEvent
-    {
+    struct Color {
         uint8_t r;
         uint8_t g;
         uint8_t b;
+    };
+    struct ColorEvent
+    {
+        Color color;
         uint32_t lengthFrames;
         bool adjusted;
     };
@@ -47,7 +50,7 @@ namespace mkshft_led
     struct Pixel
     {
         std::list<ColorEvent> colorQueue;
-        std::list<ColorEvent>::iterator currentColor;
+        std::list<ColorEvent>::iterator activeEvent;
         uint32_t framesLeft;
         bool loop;
         bool on;
@@ -65,6 +68,8 @@ namespace mkshft_led
                     uint8_t r, uint8_t g, uint8_t b);
 
     void applyToMatrix(void (*apply)(uint8_t, uint8_t));
+
+    void createFadeSequence(uint32_t frames, Color start, Color end);
 
     void printPixel(uint8_t n);
     void printPixel(uint8_t r, uint8_t c);
