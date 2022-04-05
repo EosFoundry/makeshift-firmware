@@ -3,6 +3,7 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <list>
+#include <math.h>
 
 namespace mkshft_led
 {
@@ -40,6 +41,13 @@ namespace mkshft_led
         uint8_t g;
         uint8_t b;
     };
+
+    struct ColorDelta {
+        int16_t r;
+        int16_t g;
+        int16_t b;
+    };
+
     struct ColorEvent
     {
         Color color;
@@ -56,9 +64,12 @@ namespace mkshft_led
         bool on;
     };
 
+    ColorDelta operator-(const Color start, const Color end);
+
     extern Pixel ledMatrix[RowSz][ColSz];
 
     void init();
+    void post();
     void updateState();
 
 
@@ -66,11 +77,15 @@ namespace mkshft_led
 
     void colorPixel(uint8_t row, uint8_t col,
                     uint8_t r, uint8_t g, uint8_t b);
+    void colorPixel(uint8_t row, uint8_t col, Color c);
 
     void applyToMatrix(void (*apply)(uint8_t, uint8_t));
 
-    void createFadeSequence(uint32_t frames, Color start, Color end);
+    std::list<ColorEvent> createFadeSequence(uint32_t frames, Color start,
+                                             Color end);
 
+    void printColor(Color c);
+    void printColor(ColorDelta c);
     void printPixel(uint8_t n);
     void printPixel(uint8_t r, uint8_t c);
 
