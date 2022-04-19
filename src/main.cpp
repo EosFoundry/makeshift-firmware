@@ -110,7 +110,7 @@ IntervalTimer ledUpdateTimer;
 /**
  * This constant defines the scanning period in milliseconds.
  */
-const long timer1PeriodUs = 4L;
+const long timer1PeriodUs = 1L;
 
 core::state_t stateCurr;
 core::state_t statePrev;
@@ -144,7 +144,9 @@ void setup()
 {
   Serial.begin(42069);
   // delay for serial monitor
-  delay(4000); 
+#ifdef DEBUG
+  // delay(4000);
+#endif
 
 #ifdef CORE_H_
   core::init();
@@ -153,7 +155,6 @@ void setup()
 #ifdef LED_H_
   mkshft_led::init();
 #endif
-  delay(420);
 
   hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
 
@@ -165,6 +166,7 @@ void setup()
 uint8_t stateDelta = 0;
 bool stateChanged = false;
 
+uint8_t row, col;
 void loop()
 {
   statePrev = stateCurr;
@@ -173,8 +175,14 @@ void loop()
   // check button states
   for (int i = 0; i < core::szButtonArray; i++)
   {
-    if (statePrev.button[i] != stateCurr.button[i])
-    {
+    row = core::ButtonLookup[i][0];
+    col = core::ButtonLookup[i][1];
+    if (statePrev.button[i] != stateCurr.button[i]) {
+      mkshft_led::ledMatrix[row][col].awaitRestart =
+          stateCurr.button[i] ||
+          mkshft_led::ledMatrix[row][col].awaitRestart;
+      Serial.print(mkshft_led::ledMatrix[row][col].awaitRestart);
+      Serial.print(" | ");
       stateChanged = true;
     }
   }

@@ -12,9 +12,9 @@ namespace core
     const uint8_t pinI2c_SCL = 19;
 
     const uint8_t pinMatrixPoll_A = 2;
-    const uint8_t pinMatrixPoll_B = 3;
+    const uint8_t pinMatrixPoll_B = 5;
     const uint8_t pinMatrixPoll_C = 4;
-    const uint8_t pinMatrixPoll_D = 5;
+    const uint8_t pinMatrixPoll_D = 3;
 
     const uint8_t pinMatrixScan_0 = 20;
     const uint8_t pinMatrixScan_1 = 21;
@@ -59,6 +59,12 @@ namespace core
         MIN = 0,
         MAX = 1
     };
+
+    const uint8_t ButtonLookup[szButtonArray][2] = {
+        {0, 0}, {0, 1}, {0, 2}, {0, 3},
+        {1, 0}, {1, 1}, {1, 2}, {1, 3},
+        {2, 0}, {2, 1}, {2, 3}, {2, 2},
+        {3, 0}, {3, 1}, {3, 2}, {3, 3}};
 
     const uint8_t inputClassBitSizeTable[inputClass_t::size] = {
         2,
