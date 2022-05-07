@@ -1,4 +1,5 @@
-#define DEBUG 1
+#define DEBUG
+
 // std library
 #include <queue>
 
@@ -8,82 +9,14 @@
 #include <avr/interrupt.h>
 
 // MakeShift libraries
+#include <led_matrix.hpp>
 #include <core.hpp>
-#include <led.hpp>
-#include <dkEvent.hpp>
+#include <mkshft_ctrl.hpp>
+
+#include <lv_conf.h>
 
 #ifdef DEBUG
-void printButtonState(core::state_t states, byte buttonAddress)
-{
-  Serial.print("Button ");
-  Serial.print(buttonAddress);
-  Serial.print(": ");
-  Serial.print(states.button[buttonAddress]);
-  Serial.print(" | ");
-  Serial.print(states.buttonExtended[buttonAddress], BIN);
-}
-
-void printlnButtonState(core::state_t states, byte buttonAddress)
-{
-  printButtonState(states, buttonAddress);
-  Serial.println();
-}
-
-void printDialState(core::state_t states, byte dialAddress)
-{
-  Serial.print("Dial ");
-  Serial.print(dialAddress);
-  Serial.print(": ");
-  Serial.print(states.dial[dialAddress]);
-}
-
-void printlnDialState(core::state_t states, byte dialAddress)
-{
-  printDialState(states, dialAddress);
-  Serial.println();
-}
-
-void printStateToSerial(core::state_t states)
-{
-  Serial.print("states: ");
-  for (int i = 0; i < 16; i++)
-  {
-    Serial.print(states.button[i]);
-    Serial.print(' ');
-  }
-  Serial.print("| ");
-
-  // Serial.print("ext: ");
-  // for (int i = 0; i < 16; i++)
-  // {
-  //   Serial.print(states.buttonExtended[i], BIN);
-  //   Serial.print(' ');
-  // }
-  // Serial.print("| ");
-
-  Serial.print("dials: ");
-  for (int i = 0; i < core::szDialArray; i++)
-  {
-    Serial.print(states.dial[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-}
-
-byte printBuffer64(byte *buffer)
-{
-  for (int i = 0; i < 8; i++)
-  {
-    for (int j = 0; j < 8; j++)
-    {
-      int count = (i * 8) + j;
-      Serial.print(buffer[count]);
-      Serial.print(' ');
-    }
-    Serial.println();
-  }
-  return 0;
-}
+#include <debug.hpp>
 #endif
 
 // HID definitions
@@ -97,93 +30,93 @@ byte printBuffer64(byte *buffer)
 
 // Hardware definitions
 
-const char *boardName = "Toaster";
+const long readInputPeriodUs = 1000L; // microseconds between dial + button scanning cycle
+const long visualRenderPeriodUs = 16667L; // microseconds between updates to visual elements
 
 /*
  * Packet counter to keep input and output on pace
  */
 unsigned int packetCount = 0;
 
-IntervalTimer hwUpdateTimer;
-IntervalTimer ledUpdateTimer;
+IntervalTimer readInputTimer;
+IntervalTimer visualRenderTimer;
 
-/**
- * This constant defines the scanning period in milliseconds.
- */
-const long timer1PeriodUs = 1L;
 
+// State tracking
 core::state_t stateCurr;
 core::state_t statePrev;
 
-int attachedDevices = 0;
+
+// Loop-exclusive variables
+uint8_t stateDelta = 0;
+bool stateChanged = false;
+uint8_t row, col;
 
 // volatile std::queue<dkEvent::Event> eventQueue;
 
-void updateState()
-{
-#ifdef CORE_H_
-  core::updateState();
-#endif
+// Helper functions
+void render();
+void sendItem(core::item_t item);
 
-#ifdef LED_H_
-  mkshft_led::updateState();
-#endif
-}
 
-void sendItem(core::item_t item)
-{
-  // for (int j = 0; j < item.size; j++)
-  // {
-  //   Serial.print(item.data[j],BIN);
-  // }
-  Serial.write(item.data, item.size);
-  Serial.print("\n");
-}
 
 void setup()
 {
-  Serial.begin(42069);
-  // delay for serial monitor
 #ifdef DEBUG
-  // delay(4000);
+  delay(1000);
 #endif
+  #ifdef MKSHFT_CTRL_H_
+  mkshft_ctrl::init();
+  #endif
+  delay(1000);
 
+  Serial.println("Beginning setup");
 #ifdef CORE_H_
   core::init();
 #endif
 
 #ifdef LED_H_
-  mkshft_led::init();
+  mkshft_ledMatrix::init();
 #endif
 
-  hwUpdateTimer.begin(updateState, timer1PeriodUs * 1000);
+  readInputTimer.begin(core::updateState, readInputPeriodUs);
+  visualRenderTimer.begin(render, visualRenderPeriodUs);
 
   delay(100);
 
   // TODO - initialize data sizes for each module in memory
 }
 
-uint8_t stateDelta = 0;
-bool stateChanged = false;
 
-uint8_t row, col;
 void loop()
 {
+  // delay(10);
   statePrev = stateCurr;
   stateCurr = core::getState();
 
   // check button states
   for (int i = 0; i < core::szButtonArray; i++)
   {
+    // Serial.print("Button ");
+    // Serial.print(i);
+    // Serial.print(" state check ");
+    // Serial.print(mkshft_ledMatrix::ledMatrix[row][col].triggeredSeqIdx);
+    // Serial.println();
     row = core::ButtonLookup[i][0];
     col = core::ButtonLookup[i][1];
     if (statePrev.button[i] != stateCurr.button[i]) {
-      mkshft_led::ledMatrix[row][col].awaitRestart =
-          stateCurr.button[i] ||
-          mkshft_led::ledMatrix[row][col].awaitRestart;
-      Serial.print(mkshft_led::ledMatrix[row][col].awaitRestart);
-      Serial.print(" | ");
+      Pixel::edge_t edge;
+      if (stateCurr.button[i] == core::ON) {
+        edge = Pixel::RISE;
+      } else {
+        edge = Pixel::FALL;
+      }
+      mkshft_ledMatrix::ledMatrix[row][col].triggeredSeqIdx = edge;
       stateChanged = true;
+    }
+    if (stateCurr.button[15] == true) {
+      Serial.println("bye bye!");
+      Serial.end();
     }
   }
   // check dial states
@@ -197,10 +130,26 @@ void loop()
   // send updates
   if (stateChanged == true)
   {
-    // sendItem(
-    //  core::generateItem(stateDelta, i)
-    // );
-    printStateToSerial(stateCurr);
+    core::sendState();
+    // core::printStateToSerial(core::getState());
   }
   stateChanged = false;
+}
+
+void render()
+{
+#ifdef LED_H_
+  mkshft_ledMatrix::updateState();
+  mkshft_ledMatrix::showMatrix();
+#endif
+}
+
+void sendItem(core::item_t item)
+{
+  // for (int j = 0; j < item.size; j++)
+  // {
+  //   Serial.print(item.data[j],BIN);
+  // }
+  Serial.write(item.data, item.size);
+  Serial.print("\n");
 }

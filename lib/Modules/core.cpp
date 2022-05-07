@@ -28,18 +28,20 @@ void corePrintln(char *msg) {
 }
 
 void test() { Serial.println("TEST TICKLE"); }
+
 #endif
 
 void readDials() {
   int dialTemp;
+  bool maxState, minState, boundIndex;
   for (int i = 0; i < szDialArray; i++) {
     dialTemp = dials[i].read();
     dialStateRelative[i] = dialTemp - dialState[i];
 
     // These bools come from checking if the state we just read has passed the
     // upper or lower bound of the specific dial we're checking
-    bool maxState = (dialTemp > dialBounds[1][i]);
-    bool minState = (dialTemp < dialBounds[0][i]);
+    maxState = (dialTemp > dialBounds[1][i]);
+    minState = (dialTemp < dialBounds[0][i]);
     if (maxState || minState) {
       /* if the check above passes, maxState == !minState is true
        *
@@ -67,9 +69,29 @@ void readDials() {
        * logical XOR, which is what we use here.
        * */
 
-      bool boundIndex = maxState ^ dialRollover[i];
+      boundIndex = maxState ^ dialRollover[i];
+
+
+      // Serial.print("dial: ");
+      // Serial.print(i);
+      // Serial.print(" | ");
+      // Serial.print("temp: ");
+      // Serial.print(dialTemp);
+      // Serial.print(" | ");
+      // Serial.print("rel: ");
+      // Serial.print(dialStateRelative[i]);
+      // Serial.print("max: ");
+      // Serial.print(maxState);
+      // Serial.print(" | ");
+      // Serial.print("min: ");
+      // Serial.print(minState);
+      // Serial.print(" | ");
+      // Serial.print("boundIdx: ");
+      // Serial.print(boundIndex);
+      // Serial.println();
+
       dialState[i] = dialBounds[!boundIndex][i];
-      dials->write(dialState[i]);
+      dials[i].write(dialState[i]);
     } else {
       dialState[i] = dialTemp;
     }
@@ -93,20 +115,27 @@ void scanButtons() {
       // Serial.print(" | currButton: ");
       /**
        * The following lines operate on buttonExtendedState as a 16bit
-       * register which tracks sampled button history. Two examples to
-       * illustrate how the debouncing code works for a momentary switch are
-       * provided below. For reference, a momentary switch is like a mouse
-       * button or keyboard button - it only reacts when the button is held,
-       * and returns to its original position when the button is let go.
+       * register which tracks sampled button history.
+       *
+       * Two examples to illustrate how the debouncing code works for a
+       * momentary switch are provided below.
+       *
+       * For reference, a momentary switch is like a mouse button or keyboard
+       * button - it only reacts when the button is held, and returns to its
+       * original position when the button is let go.
        *
        * In the examples, when the switch is pressed or held down, it will be
        * described as CLOSED (because the circuit closes and contact is made),
        * when the switch is let go it will be described as OPEN.
        *
+       *
+       *
        * Example i)
+       * ---------------
        *  Switch has been held CLOSED for a while and is about to trigger
        *  a button on event, buttonExtendedState is reading 0xE000,
        *   in binary: 1110 0000 0000 0000
+       *
        *
        * -> Switch continues to be held CLOSED and the following happens:
        *
@@ -116,38 +145,53 @@ void scanButtons() {
        *          to: 1100000000000000 <-┘
        *
        *  2 => Matrix scans the switch pin, reads true (0x0001), then applies
-       *     the logical not (!) operator to flip the LSB :
+       *       the logical not (!) operator to flip the Least Significal Bit
+       *       (LSB):
        *              (!digitalReadFast())
        *     as read: 0000000000000001 --┐
        *     flipped: 0000000000000000 <-┘
        *
-       * -> Once the two steps abov finish, the values obtained are then OR'd
-       *    with 0xE000(*):
-       *      Step 1 result  OR  Step 2 result  OR     0xE000
-       *   ( 1100000000000000 | 0000000000000000 | 11E0000000000000 )
-       *            = 1110000000000000  (still 0xE000)
+       *
+       * -> Once the two steps above finish, the bitwise OR operator is applied
+       *    across across the two values along with 0xE000 (* see below for why
+       *    this constant):
+       *
+       *       1100000000000000  <- result from step 1 bitshift
+       *   OR  0000000000000000  <- result from step 2 read
+       *   OR  1110000000000000  <- constant (0xE000)
+       *     = 1110000000000000  (still 0xE000)
+       *
        *
        * -> The result just above is assigned back to buttonExtendedState as
        *    the new state.
-       *    buttonExtendedState = 1110000000000000
        *
-       * -> The new state is then compared with 0xE000 (*) to qualify it as
-       *    either fully CLOSED or still OPEN :
-       *              (buttonExtendedState == 0xE000)
-       *      result: 1110000000000000  <-┐ these are the same, lol
-       *      0xE000: 1110000000000000  <-┘
+       *  buttonExtendedState = 1110000000000000
+       *
+       *
+       * -> The new state is then compared with 0xE000 to qualify it as either
+       *    fully CLOSED or still OPEN :
+       *
+       *      buttonExtendedState: 1110000000000000  <-┐
+       *                   0xE000: 1110000000000000  <-┘
+       *
+       *     (buttonExtendedState == 0xE000) ? --> returns true
+       *
        *
        *  => The comparison passed since they're equal, buttonState is
        * assigned the result of the comparison which in this cas is TRUE
        *     buttonState: TRUE
        *
+       *
        *  (*) -   0xE000 is a tuning constant, it's more intuitive to consider
-       * it as 1110000000000000, representing a snapshot of what a true ON
-       *          event that passes debounce looks like as a binary string.
-       *          Example ii) will probably give more insight.
+       *          it as 1110000000000000, representing a snapshot of what a true
+       *          ON event that passes debounce looks like as a binary string.
+       *          Example ii) will hopefully give more insight.
+       *
+       *
        *
        *
        * Example ii)
+       * ---------------
        *  Switch has been CLOSED for a few ticks, and a bounce event happens
        *  i.e., the switch is momentarily pulled OPEN from imperfect contact
        *
@@ -166,13 +210,16 @@ void scanButtons() {
        *     as read: 0000000000000000
        *     flipped: 0000000000000001
        *
+       *
        * -> The values obtained above get OR'd with 0xE000:
        *      Step 1 result  OR  Step 2 result  OR     0xE000
        *   ( 1110000000000000 | 0000000000000001 | 1110000000000000 )
        *            = 1110000000000001  (still 0xE000)
        *
+       *
        * -> The result above is then stored in buttonExtendedState as the new
        *    buttonExtendedState = 1110000000000000
+       *
        *
        * -> The new state is then compared with 0xE000 (*) to qualify it as
        *    either fully CLOSED or still OPEN :
@@ -181,8 +228,9 @@ void scanButtons() {
        *      0xE000: 1110000000000000  <-┘
        *
        *  => The comparison failed here because the digitalRead passed in a 1
-       * to the LSB of the buttonState is assigned the result of the
-       * comparison which in this cas is FALSE. buttonState: FALSE
+       *     to the LSB of the buttonState is assigned the result of the
+       *     comparison which in this case is FALSE, thuse setting buttonState
+       *     to FALSE as well
        */
       buttonExtendedState[currButton] =
           (buttonExtendedState[currButton] << 1) |
@@ -212,6 +260,7 @@ void scanButtons() {
        * positive, but since the code already runs on ns scale, I'm keeping it
        * strictly bit logic to keep the timing more consistent.
        */
+
       buttonEdgeEventQueue[currButton] <<= (1 && (prevState ^ currState));
       buttonEdgeEventQueue[currButton] += ((!prevState) && currState);
       buttonEdgeEventQueue[currButton] <<= (1 && (prevState ^ currState));
@@ -227,116 +276,177 @@ void scanButtons() {
   return;
 }
 
-  void updateState()
-  {
-    scanButtons();
-    readDials();
-    return;
+void updateState() {
+  scanButtons();
+  readDials();
+  return;
+}
+
+state_t getState() {
+  struct state_t s;
+
+  s.snapShotTime = millis();
+
+  for (int i = 0; i < szButtonArray; i++) {
+    s.button[i] = buttonState[i];
+    s.buttonEdgeEventQueue[i] = buttonEdgeEventQueue[i];
+    s.buttonExtended[i] = buttonExtendedState[i];
   }
 
-  state_t getState()
-  {
-    struct state_t s;
-
-    s.snapShotTime = millis();
-
-    for (int i = 0; i < szButtonArray; i++)
-    {
-      s.button[i] = buttonState[i];
-      s.buttonEdgeEventQueue[i] = buttonEdgeEventQueue[i];
-      s.buttonExtended[i] = buttonExtendedState[i];
-    }
-
-    for (int i = 0; i < szDialArray; i++)
-    {
-      s.dial[i] = dialState[i];
-      s.dialRelative[i] = dialStateRelative[i];
-    }
-
-    return s;
+  for (int i = 0; i < szDialArray; i++) {
+    s.dial[i] = dialState[i];
+    s.dialRelative[i] = dialStateRelative[i];
   }
 
-  /*
-     bool diffStates(state_t first, state_t second, state_delta_t *dif)
+  return s;
+}
+
+void sendState() {
+  int sz = 20;
+  uint8_t buffer[sz];
+
+  for (int n = 0 ; n < sz; n++) {
+    buffer[n] = 0;
+  }
+  buffer[0] = Mesasge::Header::stateUpdate;
+  // Fill least significant byte with button states 0 -> 7
+  buffer[2] += buttonState[0] * 0x01;
+  buffer[2] += buttonState[1] * 0x02;
+  buffer[2] += buttonState[2] * 0x04;
+  buffer[2] += buttonState[3] * 0x08;
+  buffer[2] += buttonState[4] * 0x10;
+  buffer[2] += buttonState[5] * 0x20;
+  buffer[2] += buttonState[6] * 0x40;
+  buffer[2] += buttonState[7] * 0x80;
+
+  // Fill most significant byte with button states 8 -> 15
+  buffer[1] += buttonState[8] * 0x01;
+  buffer[1] += buttonState[9] * 0x02;
+  buffer[1] += buttonState[10] * 0x04;
+  buffer[1] += buttonState[11] * 0x08;
+  buffer[1] += buttonState[12] * 0x10;
+  buffer[1] += buttonState[13] * 0x20;
+  buffer[1] += buttonState[14] * 0x40;
+  buffer[1] += buttonState[15] * 0x80;
+
+  // use bitwise AND (&) to break the integer dial state into 4 bytes
+  uint8_t i = 0;
+  for (uint8_t n = 0; n < 4; n++) {
+    i = (n * 4) + 3;
+    buffer[i]     += (dialState[n] & 0xFF000000) >> 24;
+    buffer[i + 1] += (dialState[n] & 0x00FF0000) >> 16;
+    buffer[i + 2] += (dialState[n] & 0x0000FF00) >> 8;
+    buffer[i + 3] += (dialState[n] & 0x000000FF);
+  }
+
+  // send endline as last byte
+  buffer[19] = '\n';
+
+  mkshft_ctrl::send(buffer,sz);
+}
+
+/*
+   bool diffStates(state_t first, state_t second, state_delta_t *dif)
+   {
+     uint8_t i = 0;
+     bool isDifferent = 0;
+     for (; i < szButtonArray; i++)
      {
-       uint8_t i = 0;
-       bool isDifferent = 0;
-       for (; i < szButtonArray; i++)
-       {
-         dif->button[i] = (first.button[i] - second.button[i]);
-         // corePrint(first.button[i]);
-         // Serial.print(' ');
-         // Serial.print(second.button[i]);
-         // Serial.print(' ');
-         // Serial.print(dif->button[i]);
-         isDifferent = isDifferent | dif->button[i];
-       }
-       for (i = 0; i < szDialArray; i++)
-       {
-         dif->dial[i] = (first.dial[i] - second.dial[i]);
-         isDifferent = isDifferent | (dif->dial[i] != 0);
-       }
+       dif->button[i] = (first.button[i] - second.button[i]);
+       // corePrint(first.button[i]);
+       // Serial.print(' ');
+       // Serial.print(second.button[i]);
+       // Serial.print(' ');
+       // Serial.print(dif->button[i]);
+       isDifferent = isDifferent | dif->button[i];
+     }
+     for (i = 0; i < szDialArray; i++)
+     {
+       dif->dial[i] = (first.dial[i] - second.dial[i]);
+       isDifferent = isDifferent | (dif->dial[i] != 0);
+     }
 
-       dif->snapShotTime = millis();
+     dif->snapShotTime = millis();
 
-       return isDifferent;
-     }*/
+     return isDifferent;
+   }*/
 
-  item_t generateItem(uint8_t data, uint8_t address)
-  {
-    item_t item;
-    uint8_t header = (uint8_t)donkey::eventClass_t::hwInput;
+item_t generateItem(uint8_t data, uint8_t address) {
+  item_t item;
+  uint8_t header = (uint8_t)donkey::eventClass_t::hwInput;
 
-    item.size = 3;
-    item.data = (uint8_t *)calloc(item.size, sizeof(uint8_t));
+  item.size = 3;
+  item.data = (uint8_t *)calloc(item.size, sizeof(uint8_t));
 
-    header += (address << 2); // address has 6 whole bits
+  header += (address << 2); // address has 6 whole bits
 
-    item.data[0] = header;
-    item.data[1] = item.size;
-    item.data[2] = data;
+  item.data[0] = header;
+  item.data[1] = item.size;
+  item.data[2] = data;
 
-    return item;
+  return item;
+}
+
+void init() {
+  Serial.println("CORE:: Initiating Core variables");
+  Serial.println("CORE:: creating timer");
+
+  dials = new Encoder[szDialArray]{{pinEncoder_0_A, pinEncoder_0_B},
+                                   {pinEncoder_1_A, pinEncoder_1_B},
+                                   {pinEncoder_2_A, pinEncoder_2_B},
+                                   {pinEncoder_3_A, pinEncoder_3_B}};
+
+  for (int i = 0; i < szMatrixPollArray; i++) {
+    pinMode(pollPins[i], OUTPUT);
   }
 
-  void init()
+  for (int i = 0; i < szMatrixScanArray; i++) {
+    pinMode(scanPins[i], INPUT_PULLDOWN);
+  }
+  Serial.println("Successfully initiated scanning pins and Encoder objects");
+}
+
+int getBound(bound_t bound, int inputAddress, int *boundValue) {
+  if (inputAddress >= 20) {
+    return -1;
+  } else if (inputAddress > 16) {
+    *boundValue = dialBounds[bound][inputAddress - 16];
+  } else {
+    *boundValue = bound;
+  }
+  return 0;
+}
+
+void printStateToSerial(state_t states, bool ext)
+{
+  Serial.print("states: ");
+  for (int i = 0; i < 16; i++)
   {
-    Serial.println("CORE:: Initiating Core variables");
-    Serial.println("CORE:: creating timer");
+    Serial.print(states.button[i]);
+    Serial.print(' ');
+  }
+  Serial.print("| ");
 
-    dials = new Encoder[szDialArray]{
-        {pinEncoder_0_A, pinEncoder_0_B},
-        {pinEncoder_1_A, pinEncoder_1_B},
-        {pinEncoder_2_A, pinEncoder_2_B},
-        {pinEncoder_3_A, pinEncoder_3_B}};
-
-    for (int i = 0; i < szMatrixPollArray; i++)
-    {
-      pinMode(pollPins[i], OUTPUT);
+  if (ext == true) {
+    Serial.print("ext: ");
+    for (int i = 0; i < 16; i++) {
+      Serial.print(states.buttonExtended[i], BIN);
+      Serial.print(' ');
     }
-
-    for (int i = 0; i < szMatrixScanArray; i++)
-    {
-      pinMode(scanPins[i], INPUT_PULLDOWN);
-    }
-    Serial.println("Successfully initiated scanning pins and Encoder objects");
+    Serial.print("| ");
   }
 
-  int getBound(bound_t bound, int inputAddress, int *boundValue)
+  Serial.print("dials: ");
+  for (int i = 0; i < szDialArray; i++)
   {
-    if (inputAddress >= 20)
-    {
-      return -1;
-    }
-    else if (inputAddress > 16)
-    {
-      *boundValue = dialBounds[bound][inputAddress - 16];
-    }
-    else
-    {
-      *boundValue = bound;
-    }
-    return 0;
+    Serial.print(states.dial[i]);
+    Serial.print(' ');
   }
+  Serial.println();
+}
 
-  } // namespace core
+void printStateToSerial(state_t states) {
+  printStateToSerial(states, false);
+}
+
+} // namespace core
