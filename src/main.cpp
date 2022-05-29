@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <TeensyID.h>
 
 // MakeShift libraries
 #include <led_matrix.hpp>
@@ -32,6 +33,7 @@
 
 const long readInputPeriodUs = 1000L; // microseconds between dial + button scanning cycle
 const long visualRenderPeriodUs = 16667L; // microseconds between updates to visual elements
+uint8_t serialNumber[4];
 
 /*
  * Packet counter to keep input and output on pace
@@ -62,15 +64,16 @@ void sendItem(core::item_t item);
 
 void setup()
 {
+  teensySN(serialNumber);
 #ifdef DEBUG
   delay(1000);
 #endif
-  #ifdef MKSHFT_CTRL_H_
-  mkshft_ctrl::init();
-  #endif
+#ifdef MKSHFT_CTRL_H_
+  mkshft_ctrl::init(serialNumber);
+  Serial.println("Beginning setup");
+#endif
   delay(1000);
 
-  Serial.println("Beginning setup");
 #ifdef CORE_H_
   core::init();
 #endif

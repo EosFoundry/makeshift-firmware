@@ -4,8 +4,12 @@ namespace mkshft_ctrl {
 
 SLIPPacketSerial packetSerial;
 
-void init() {
+void init(uint8_t serial[4]) {
   Serial.begin(42069);
+  uint8_t initMessage[8];
+
+  initMessage[0] = MessageType::INIT;
+
   packetSerial.setStream(&Serial);
   packetSerial.setPacketHandler(&onPacketReceived);
 }
