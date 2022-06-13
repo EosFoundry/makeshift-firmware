@@ -10,11 +10,10 @@
 #include <TeensyID.h>
 
 // MakeShift libraries
-#include <led_matrix.hpp>
 #include <core.hpp>
+#include <led_matrix.hpp>
+#include <ILI9341.hpp>
 #include <mkshft_ctrl.hpp>
-
-#include <lv_conf.h>
 
 #ifdef DEBUG
 #include <debug.hpp>
@@ -34,6 +33,7 @@
 const long readInputPeriodUs = 1000L; // microseconds between dial + button scanning cycle
 const long visualRenderPeriodUs = 16667L; // microseconds between updates to visual elements
 uint8_t serialNumber[4];
+
 
 /*
  * Packet counter to keep input and output on pace
@@ -58,8 +58,6 @@ uint8_t row, col;
 
 // Helper functions
 void render();
-void sendItem(core::item_t item);
-
 
 
 void setup()
@@ -68,10 +66,11 @@ void setup()
 #ifdef DEBUG
   delay(1000);
 #endif
+
 #ifdef MKSHFT_CTRL_H_
   mkshft_ctrl::init(serialNumber);
-  Serial.println("Beginning setup");
 #endif
+
   delay(1000);
 
 #ifdef CORE_H_
@@ -82,10 +81,16 @@ void setup()
   mkshft_ledMatrix::init();
 #endif
 
+#ifdef ILI9341_H_
+  mkshft_display::init();
+#endif
+
   readInputTimer.begin(core::updateState, readInputPeriodUs);
   visualRenderTimer.begin(render, visualRenderPeriodUs);
 
   delay(100);
+
+  mkshft_display::test();
 
   // TODO - initialize data sizes for each module in memory
 }
@@ -117,10 +122,10 @@ void loop()
       mkshft_ledMatrix::ledMatrix[row][col].triggeredSeqIdx = edge;
       stateChanged = true;
     }
-    if (stateCurr.button[15] == true) {
-      Serial.println("bye bye!");
-      Serial.end();
-    }
+    // if (stateCurr.button[15] == true) {
+    //   Serial.println("bye bye!");
+    //   Serial.end();
+    // }
   }
   // check dial states
   for (int i = 0; i < core::szDialArray; i++)
@@ -145,14 +150,4 @@ void render()
   mkshft_ledMatrix::updateState();
   mkshft_ledMatrix::showMatrix();
 #endif
-}
-
-void sendItem(core::item_t item)
-{
-  // for (int j = 0; j < item.size; j++)
-  // {
-  //   Serial.print(item.data[j],BIN);
-  // }
-  Serial.write(item.data, item.size);
-  Serial.print("\n");
 }

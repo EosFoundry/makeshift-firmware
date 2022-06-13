@@ -18,7 +18,7 @@ void send(const uint8_t *buf, size_t sz);
 
 void onPacketReceived(const uint8_t* buffer, size_t size);
 
-void init(const uint8_t serial[4]);
+void init(uint8_t const serial[4]);
 } // namespace mkshft_ctrl
 
 #endif // MKSHFT_CTRL_H_

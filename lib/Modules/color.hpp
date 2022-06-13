@@ -1,6 +1,7 @@
 #ifndef COLOR_H_
 #define COLOR_H_
 
+// TODO: sync colors between tgx and this module
 #include <Arduino.h>
 #include <list>
 #include <math.h>
