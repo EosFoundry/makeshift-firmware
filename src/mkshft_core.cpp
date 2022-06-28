@@ -1,8 +1,9 @@
-#include <core.hpp>
+#include <mkshft_core.hpp>
 
-namespace core {
+inline namespace core {
 bool dialRollover[szDialArray] = {1, 1, 1, 1};
-int dialBounds[2][szDialArray] = {{-32, -32, -32, -32}, {32, 32, 32, 32}};
+
+int dialBounds[2][szDialArray] = {{0, 0, 0, 0}, {128, 128, 128, 128}};
 
 volatile bool buttonState[szButtonArray] = {0, 0, 0, 0, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0};
@@ -70,7 +71,6 @@ void readDials() {
        * */
 
       boundIndex = maxState ^ dialRollover[i];
-
 
       // Serial.print("dial: ");
       // Serial.print(i);
@@ -301,50 +301,6 @@ state_t getState() {
   return s;
 }
 
-void sendState() {
-  int sz = 20;
-  uint8_t buffer[sz];
-
-  for (int n = 0 ; n < sz; n++) {
-    buffer[n] = 0;
-  }
-  buffer[0] = Mesasge::Header::stateUpdate;
-  // Fill least significant byte with button states 0 -> 7
-  buffer[2] += buttonState[0] * 0x01;
-  buffer[2] += buttonState[1] * 0x02;
-  buffer[2] += buttonState[2] * 0x04;
-  buffer[2] += buttonState[3] * 0x08;
-  buffer[2] += buttonState[4] * 0x10;
-  buffer[2] += buttonState[5] * 0x20;
-  buffer[2] += buttonState[6] * 0x40;
-  buffer[2] += buttonState[7] * 0x80;
-
-  // Fill most significant byte with button states 8 -> 15
-  buffer[1] += buttonState[8] * 0x01;
-  buffer[1] += buttonState[9] * 0x02;
-  buffer[1] += buttonState[10] * 0x04;
-  buffer[1] += buttonState[11] * 0x08;
-  buffer[1] += buttonState[12] * 0x10;
-  buffer[1] += buttonState[13] * 0x20;
-  buffer[1] += buttonState[14] * 0x40;
-  buffer[1] += buttonState[15] * 0x80;
-
-  // use bitwise AND (&) to break the integer dial state into 4 bytes
-  uint8_t i = 0;
-  for (uint8_t n = 0; n < 4; n++) {
-    i = (n * 4) + 3;
-    buffer[i]     += (dialState[n] & 0xFF000000) >> 24;
-    buffer[i + 1] += (dialState[n] & 0x00FF0000) >> 16;
-    buffer[i + 2] += (dialState[n] & 0x0000FF00) >> 8;
-    buffer[i + 3] += (dialState[n] & 0x000000FF);
-  }
-
-  // send endline as last byte
-  buffer[19] = '\n';
-
-  mkshft_ctrl::send(buffer,sz);
-}
-
 /*
    bool diffStates(state_t first, state_t second, state_delta_t *dif)
    {
@@ -370,22 +326,6 @@ void sendState() {
 
      return isDifferent;
    }*/
-
-item_t generateItem(uint8_t data, uint8_t address) {
-  item_t item;
-  uint8_t header = (uint8_t)donkey::eventClass_t::hwInput;
-
-  item.size = 3;
-  item.data = (uint8_t *)calloc(item.size, sizeof(uint8_t));
-
-  header += (address << 2); // address has 6 whole bits
-
-  item.data[0] = header;
-  item.data[1] = item.size;
-  item.data[2] = data;
-
-  return item;
-}
 
 void init() {
   Serial.println("CORE:: Initiating Core variables");
@@ -417,11 +357,9 @@ int getBound(bound_t bound, int inputAddress, int *boundValue) {
   return 0;
 }
 
-void printStateToSerial(state_t states, bool ext)
-{
+void printStateToSerial(state_t states, bool ext) {
   Serial.print("states: ");
-  for (int i = 0; i < 16; i++)
-  {
+  for (int i = 0; i < 16; i++) {
     Serial.print(states.button[i]);
     Serial.print(' ');
   }
@@ -437,16 +375,13 @@ void printStateToSerial(state_t states, bool ext)
   }
 
   Serial.print("dials: ");
-  for (int i = 0; i < szDialArray; i++)
-  {
+  for (int i = 0; i < szDialArray; i++) {
     Serial.print(states.dial[i]);
     Serial.print(' ');
   }
   Serial.println();
 }
 
-void printStateToSerial(state_t states) {
-  printStateToSerial(states, false);
-}
+void printStateToSerial(state_t states) { printStateToSerial(states, false); }
 
 } // namespace core

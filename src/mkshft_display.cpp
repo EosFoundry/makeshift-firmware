@@ -1,18 +1,15 @@
-#include <ILI9341.hpp>
+#include <mkshft_display.hpp>
 inline namespace mkshft_display {
 // Display driver with the pins
 ILI9341_T4::ILI9341Driver tft(CS_PIN, DC_PIN, SCK_PIN, SDI_PIN, SDO_PIN,
                               RST_PIN, TOUCH_CS_PIN, TOUCH_IRQ_PIN);
 // 2 diff buffers with about 6K memory each
-ILI9341_T4::DiffBuffStatic<6000> diff1;
-ILI9341_T4::DiffBuffStatic<6000> diff2;
+ILI9341_T4::DiffBuffStatic<6800> diff1;
+ILI9341_T4::DiffBuffStatic<6800> diff2;
 
 // our framebuffers
 DMAMEM uint16_t internal_fb[LX * LY];
 uint16_t fb[LX * LY];
-
-// Update timer
-IntervalTimer guiTimer;
 
 // The canvas object that drawing functions operate on
 tgx::Image<RGB565> canvas(fb, LX, LY);
@@ -48,9 +45,29 @@ void init() {
   Serial.println("Clearing screen");
   tft.clear(0);
 
+  // delay(1);
+
   tft.update(fb);
-  // Setting canvas to draw widgets on
-  setDefaultCanvas(&canvas);
+}
+
+long int lastRenderTime = 0;
+long int currRenderTime = 0;
+int renderDelta = 0;
+bool fullUpdate = false;
+
+/**
+ * The update function
+ */
+void update() {
+  tft.update(fb, fullUpdate);
+  currRenderTime = millis();
+  renderDelta = currRenderTime - lastRenderTime;
+  if (renderDelta > FULL_UPDATE_PERIOD_MS) {
+    fullUpdate = true;
+  } else {
+    fullUpdate = false;
+  }
+  lastRenderTime = currRenderTime;
 }
 
 void calibrateTouch() {
@@ -60,13 +77,4 @@ void calibrateTouch() {
   tft.setTouchCalibration(touch_calib); // set touch calibration
 }
 
-void test() {
-  Circle circ(iVec2(40,40), 69);
-  circ.setColors(RGB32(130, 20, 144), RGB32(20,20,20));
-  Widget toaster = Widget(iVec2(100, 150), iVec2(40, 77));
-  toaster.setColors(RGB32(130, 20, 144), RGB32(20,20,20));
-  toaster.render();
-  circ.render();
-  tft.update(fb);
-}
 } // namespace mkshft_display

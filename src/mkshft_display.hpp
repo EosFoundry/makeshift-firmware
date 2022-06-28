@@ -1,4 +1,3 @@
-#pragma once
 #ifndef ILI9341_H_
 #define ILI9341_H_
 
@@ -7,7 +6,6 @@
 #include <ILI9341_T4.h>
 #include <tgx.h>
 
-#include <widget.hpp>
 
 inline namespace mkshft_display {
 using namespace tgx;
@@ -25,7 +23,15 @@ const uint32_t SPI_SPEED = 40000000;
 const uint16_t LX = 320;
 const uint16_t LY = 240;
 
+const int FULL_UPDATE_PERIOD_MS = 100;
+
+extern ILI9341_T4::ILI9341Driver tft;
+extern uint16_t fb[LX * LY];
+extern tgx::Image<RGB565> canvas;
+
 void init();
+// alias for tft.update(fb)
+void update();
 void calibrateTouch();
 void test();
 

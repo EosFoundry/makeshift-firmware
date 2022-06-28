@@ -4,10 +4,8 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
-#include <dkEvent.hpp>
-#include <mkshft_ctrl.hpp>
 
-namespace core {
+inline namespace core {
 const uint8_t deviceID = 0x02;
 const uint8_t pinI2c_SDA = 18;
 const uint8_t pinI2c_SCL = 19;
@@ -47,44 +45,48 @@ const uint8_t szDialArray = 4;
 const uint8_t szMatrixPollArray = 4;
 const uint8_t szMatrixScanArray = 4;
 
+const uint8_t szSerialPorts = 1;
+
 const uint8_t dialAddressModulo = 16;
 
-enum inputClass_t { button, dial, size };
+typedef bool buttonState_t;
+typedef int dialState_t;
+
+enum input_t { serial, button, dial };
 
 enum buttonEdge_t { ON = 1, OFF = 0 };
 
 enum bound_t { MIN = 0, MAX = 1 };
 
 const uint8_t ButtonLookup[szButtonArray][2] = {
-    {0, 0}, {0, 1}, {0, 2}, {0, 3},
-    {1, 0}, {1, 1}, {1, 2}, {1, 3},
-    {2, 0}, {2, 1}, {2, 3}, {2, 2},
-    {3, 0}, {3, 1}, {3, 2}, {3, 3}
-};
 
-const uint8_t inputClassBitSizeTable[inputClass_t::size] = {2, 1};
+    {0, 0}, {0, 1}, {0, 2}, {0, 3},
+
+    {1, 0}, {1, 1}, {1, 2}, {1, 3},
+
+    {2, 0}, {2, 1}, {2, 3}, {2, 2},
+
+    {3, 0}, {3, 1}, {3, 2}, {3, 3}};
 
 /**
  * This array maps the addresses betwee 0x00 and 0x14 to the buttons and
  * dials - 16 buttons + 4 dials = 20, or 0x14 in HEX
  *
- * This table essentially decides the addresses of the buttons and dials.
+ * This table encodes the addresses of the buttons and dials.
  */
-const inputClass_t inputAddressClassTable[szButtonArray + szDialArray] = {
-    inputClass_t::button, inputClass_t::button,
-    inputClass_t::button, inputClass_t::button,
+const input_t
+    inputAddressTypeTable[szButtonArray + szDialArray + szSerialPorts] = {
+        input_t::button, input_t::button, input_t::button, input_t::button,
 
-    inputClass_t::button, inputClass_t::button,
-    inputClass_t::button, inputClass_t::button,
+        input_t::button, input_t::button, input_t::button, input_t::button,
 
-    inputClass_t::button, inputClass_t::button,
-    inputClass_t::button, inputClass_t::button,
+        input_t::button, input_t::button, input_t::button, input_t::button,
 
-    inputClass_t::button, inputClass_t::button,
-    inputClass_t::button, inputClass_t::button,
+        input_t::button, input_t::button, input_t::button, input_t::button,
 
-    inputClass_t::dial,   inputClass_t::dial,
-    inputClass_t::dial,   inputClass_t::dial};
+        input_t::dial,   input_t::dial,   input_t::dial,   input_t::dial,
+
+        input_t::serial};
 
 /**
  * This constant defines the scanning period in milliseconds.
@@ -173,12 +175,9 @@ extern volatile uint8_t dialStateRelative[szDialArray];
 extern Encoder *dials;
 
 /**
- * \fn void scanButtons()
- * \brief scans, debounces and updates button state
- *
- * Function loops over keyswitch matrix, debouncing and updating
- * button state along the way. The debounce code ensures a minimum time
- * for a button to be held down in order to be 'certified on'.
+ * Loops over keyswitch matrix, debouncing and updating button state along
+ * the way. The debounce code ensures a minimum time for a button to be held
+ * down in order to be 'certified on'.
  *
  * See link below for overview of how a switch matrix works:
  * https://www.baldengineer.com/arduino-keyboard-matrix-tutorial.html
@@ -192,12 +191,14 @@ void scanButtons();
  */
 void readDials();
 
+/**
+ * Updates state by calling hardware read functions, no logic is put in here
+ * to keep the update process as fast as possible, logic updates are read and
+ * then acted on in the main.cpp loop
+ */
 void updateState();
 
 state_t getState();
-
-
-void sendState();
 
 void init();
 
