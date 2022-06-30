@@ -117,13 +117,11 @@ void Widget::_generateParametersFromParent() {
 }
 
 void TextBox::_renderSelf() {
-  // if (borderWidth > 0) {
-  //   canvas->fillRoundRect(borderBox, borderRadius, borderColor, opacity);
-  // }
-  // canvas->fillRoundRect(box, cornerRadius, fillColor, opacity);
-  // TODO: finish implementing fonts
+  if (borderWidth > 0) {
+    canvas->fillRoundRect(borderBox, borderRadius, borderColor, opacity);
+  }
+  canvas->fillRoundRect(box, cornerRadius, fillColor, opacity);
   // canvas->drawChar('c', iVec1(0,0), fillColor,  GFXfont);
-  // Render text constrained to box
 }
 
 void LoadingBar::setFillDirection(FILL_DIRECTION newFD) {
