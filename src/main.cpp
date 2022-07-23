@@ -11,12 +11,12 @@
 #include <functional>
 
 // MakeShift libraries
+#include <makethift.hpp>
 #include <mkshft_core.hpp>
-#include <mkshft_display.hpp>
-#include <mkshft_ui.hpp>
-#include <mkshft_led.hpp>
-
 #include <mkshft_ctrl.hpp>
+#include <mkshft_display.hpp>
+#include <mkshft_led.hpp>
+#include <mkshft_ui.hpp>
 
 #ifdef DEBUG
 #endif
@@ -35,7 +35,7 @@
 
 const long readInputPeriodUs =
     1000L; // microseconds between dial + button scanning cycle
-const long visualRenderPeriodUs =
+const long ledRenderPeriodUs =
     26667L; // microseconds between updates to visual elements
 uint8_t serialNumber[4];
 
@@ -45,7 +45,7 @@ uint8_t serialNumber[4];
 unsigned int packetCount = 0;
 
 IntervalTimer readInputTimer;
-IntervalTimer visualRenderTimer;
+IntervalTimer ledRenderTimer;
 
 // State tracking
 core::state_t stateCurr;
@@ -56,60 +56,63 @@ uint8_t stateDelta = 0;
 bool stateChanged = false;
 uint8_t row, col;
 
-Layout *baseLayout;
-LoadingBar *testBar;
+// Layout *baseLayout;
+// LoadingBar *testBar;
 
 // volatile std::queue<dkEvent::Event> eventQueue;
 
 // Helper functions
-void visualUpdate();
+void ledUpdate();
 void testWidgets();
 
 void setup() {
   teensySN(serialNumber);
-#ifdef DEBUG
-  delay(1000);
-#endif
 
 #ifdef MKSHFT_CTRL_H_
   mkshft_ctrl::init(serialNumber);
-  delay(1000);
 #endif
 
+  // TODO: organise define constants to MKSHFT
 #ifdef CORE_H_
   core::init();
-  delay(1000);
 #endif
 
 #ifdef LED_H_
   mkshft_ledMatrix::init();
-  delay(1000);
 #endif
 
 #ifdef ILI9341_H_
   mkshft_display::init();
-  mkshft_ui::setDefaultCanvas(&canvas);
-  delay(1000);
+#endif
+
+#ifdef MKSHFT_UI_H_
+  mkshft_ui::init(&canvas);
+#endif
+
+#ifdef MKSHFT_LISP_H_
+  mkshft_lisp::init(&mkshft_ctrl::sendString);
 #endif
 
   readInputTimer.begin(core::updateState, readInputPeriodUs);
-  visualRenderTimer.begin(visualUpdate, visualRenderPeriodUs);
+  ledRenderTimer.begin(ledUpdate, ledRenderPeriodUs);
 
   // testWidgets();
 
   // TODO - initialize data sizes for each module in memory
+  // baseLayout = &mkshft_ui::layouts.at("default");
+  // testBar = baseLayout->addWidget("testBar", LoadingBar("testBar",
+  // baseLayout));
 
-  baseLayout = new Layout();
-  testBar = new LoadingBar(baseLayout);
+  // // mkshft_ui::link(baseLayout, testBar);
+  // baseLayout->setColors(RGB32(130, 20, 144), RGB32(20, 20, 20));
+  // testBar->setBorderWidth(4);
+  // testBar->setFillColor(tgx::RGB32_Red);
+  // testBar->setBackgroundColor(tgx::RGB32_Black);
+  // // testBar->setBorderColor(tgx::RGB32_Black);
+  // baseLayout->render();
+  //
 
-  mkshft_ui::link(baseLayout, testBar);
-  baseLayout->setColors(RGB32(130, 20, 144), RGB32(20, 20, 20));
-  testBar->setBorderWidth(4);
-  testBar->setFillColor(tgx::RGB32_Red);
-  testBar->setBackgroundColor(tgx::RGB32_Black);
-  // testBar->setBorderColor(tgx::RGB32_Black);
-  baseLayout->render();
-  delay(1000);
+  mkshft_ctrl::sendReady();
 }
 
 void loop() {
@@ -156,8 +159,8 @@ void loop() {
 
         int progress = round(progressPercent);
 
-        testBar->setProgress(progress);
-        baseLayout->render();
+        // testBar->setProgress(progress);
+        // baseLayout->render();
       }
     }
   }
@@ -167,10 +170,12 @@ void loop() {
     // core::printStateToSerial(core::getState());
   }
   stateChanged = false;
+  mkshft_ui::renderUI();
   mkshft_display::update();
+  mkshft_ctrl::update();
 }
 
-void visualUpdate() {
+void ledUpdate() {
 #ifdef LED_H_
   mkshft_ledMatrix::updateState();
   mkshft_ledMatrix::showMatrix();

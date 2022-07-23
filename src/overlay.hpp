@@ -8,7 +8,7 @@ class Overlay : public Widget {
 public:
   using Widget::Widget;
   
-  int fadeTimeMs = 400;
+  uint32_t fadeTimeMs = 400;
 };
 } // namespace mkshft_display
 

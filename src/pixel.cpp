@@ -33,9 +33,9 @@ void Pixel::resetToBlank() {
 
 void Pixel::setSequence(edge_t edge, ColorSequence seqAtk,
                           ColorSequence seqSus) {
-  Serial.println("Setting sequences");
 
 #ifdef DEBUG
+  Serial.println("Setting sequences");
   Serial.println("ATK Seq: ");
   printSequence(seqAtk);
   Serial.println("SUS Seq: ");

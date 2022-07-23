@@ -14,19 +14,11 @@
 
 inline namespace fonts {
 
-#define defFont(STYLE) iosevka_mkshft_##STYLE##pt7b
+#define defFont(STYLE) &iosevka_mkshft_##STYLE##pt7b
 
-struct Font {
-  GFXfont regular[3];
-  GFXfont bold[3];
-  GFXfont oblique[3];
-};
-
-const Font toaster = {
-    {defFont(thin7), defFont(thin8), defFont(regular9)},
-    {defFont(bold8), defFont(bold8), defFont(thin8)},
-    {defFont(thin7), defFont(thin8), defFont(thin8)},
-};
+extern const GFXfont * baseFont;
+// Note to self: const <T>* is a non-constant pointer to a constant type,
+// while <T> * const is a constant pointer to a non-constant type.
 
 } // namespace fonts
 

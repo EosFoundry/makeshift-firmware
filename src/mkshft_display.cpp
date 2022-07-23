@@ -15,10 +15,9 @@ uint16_t fb[LX * LY];
 tgx::Image<RGB565> canvas(fb, LX, LY);
 
 void init() {
-  Serial.println("startin");
+  Serial.println("Initializing serial communication to display...");
   tft.output(&Serial); // send debug info to serial port.
 
-  Serial.println("Initializing serial communication to display...");
   while (!tft.begin(SPI_SPEED)) {
     Serial.println("Initialization error...");
     delay(1000);

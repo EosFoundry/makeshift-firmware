@@ -3,63 +3,48 @@
 
 #include <Arduino.h>
 #include <PacketSerial.h>
-#include <color.hpp>
-#include <functional>
+
 #include <map>
-#include <mkshft_core.hpp>
-#include <mkshft_display.hpp>
-#include <mkshft_led.hpp>
-#include <mkshft_ui.hpp>
+#include <string>
 #include <vector>
+
+#include <makethift.hpp>
 
 inline namespace mkshft_ctrl {
 
-typedef std::string DataLabel;
-
-enum DataType {
-  STRING,
-  INT,
-  FLOAT,
-};
-
-struct DataValue {
-  DataType type;
-  std::vector<uint8_t> value;
-};
-
-typedef std::function<bool(DataLabel, DataValue)> MkshftCtrlFn;
-
-// extern std::map<DataLabel, MkshftCtrlFn> functionStore;
-
-/**
- * This data structure stores 'arbitrary' data as a typestring
- */
-extern std::map<DataLabel, DataValue> dataStore;
-
 extern SLIPPacketSerial packetSerial;
 
-enum MessageType { INIT = 0, STATE_UPDATE = 1, CALL_ERROR };
+enum MessageType {
+  PING,
+  ACK,
+  READY,
+  STATE_UPDATE,
+  ERROR,
+  STRING,
+  DISCONNECT,
+};
+
+extern uint8_t connected;
 
 bool getWidgets();
 
-std::vector<DataLabel> getDataLabels();
-
-// bool setNumberData(DataLabel label, int newInt);
-
-// bool setNumberData(DataLabel label, float newFloat);
-
-// bool toggleOverlay();
-
-
-bool setTextData(DataLabel label, DataValue newText);
-
 void sendState(core::state_t st);
+void sendLayouts();
 
 void init(uint8_t const serial[4]);
 
-void send(const uint8_t *buf, size_t sz);
+// Alias to keep the implementation detail out of the way
+inline void update() { packetSerial.update(); };
+
+void sendReady();
+
+void sendString(std::string body);
+
+// wraps PacketSerial.send with a connection check
+void send(MessageType, const uint8_t *, size_t);
 
 void onPacketReceived(const uint8_t *buffer, size_t size);
+void handleSymExp(std::string);
 
 } // namespace mkshft_ctrl
 

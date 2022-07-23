@@ -4,6 +4,12 @@ inline namespace mkshft_ui {
 
 Image<RGB565> *defaultCanvas = nullptr;
 
+const WidgetType WBox::type = W_BOX;
+const WidgetType WCircle::type = W_CIRCLE;
+const WidgetType WTextBox::type = W_TEXT_BOX;
+const WidgetType WProgressBar::type = W_PROGRESS_BAR;
+
+#ifdef DEBUG
 void _printBox(iBox2 b) {
   Serial.print("min: (");
   Serial.print(b.minX);
@@ -15,9 +21,21 @@ void _printBox(iBox2 b) {
   Serial.print(b.maxY);
   Serial.print(")");
 }
+#endif
 
-void Widget::setSize(iBox2 newBox) {
-  box = iBox2(newBox);
+void Widget::setAnchor(uint16_t x, uint16_t y) { anchor = iVec2(x, y); }
+
+void Widget::setSize(uint16_t lx, uint16_t ly) {
+#ifdef DEBUG
+  Serial.print("Setting size of widget ");
+  Serial.print(id.data());
+  Serial.print(" to : ");
+  Serial.print(lx);
+  Serial.print("x");
+  Serial.print(ly);
+  Serial.println();
+#endif
+  box = iBox2(anchor.x, lx, anchor.y, ly);
   center = box.center();
   dimensions = iVec2(box.lx(), box.ly());
 
@@ -60,26 +78,19 @@ void Widget::setCornerRadius(int r) {
 }
 
 void Widget::render() {
-  _renderSelf();
-  _renderChildren();
-}
-
-void Widget::addChild(Widget *newChild) { children.push_back(newChild); }
-
-void Widget::_renderSelf() {
+#ifdef DEBUG_LOOP
+  Serial.print("Rendering widget \"");
+  Serial.print(id.data());
+  Serial.print("\" : ");
+  _printBox(box);
+  Serial.println();
+#endif
   if (borderWidth > 0) {
     canvas->fillRoundRect(borderBox, borderRadius, borderColor, opacity);
   }
   canvas->fillRoundRect(box, cornerRadius, fillColor, opacity);
 }
 
-void Widget::_renderChildren() {
-  for (auto &child : children) {
-    Serial.print("rendering child box: ");
-    _printBox(child->box);
-    child->render();
-  }
-}
 void Widget::_generateParameters() {
   int minx = anchor.x;
   int maxx = anchor.x + dimensions.x;
@@ -94,42 +105,145 @@ void Widget::_generateParameters() {
   borderWidth = 0;
   opacity = 1.0f;
   borderBox = iBox2(box);
-  Serial.println("Generating parameters for widget: ");
-  _printBox(iBox2(anchor.x, dimensions.x, anchor.y, dimensions.y));
+
+#ifdef DEBUG
+  Serial.print("Generating parameters for widget \"");
+  Serial.print(id.data());
+  Serial.print("\"...");
   Serial.println();
+  // _printBox(iBox2(anchor.x, dimensions.x, anchor.y, dimensions.y));
+  // Serial.println();
+#endif
 }
 
-void Widget::_generateParametersFromParent() {
-  anchor = parent->anchor;
-  dimensions = parent->dimensions;
-  cornerRadius = 0;
-  box = iBox2(parent->box);
+void WTextBox::setSize(uint16_t lx, uint16_t ly) {
+  box = iBox2(anchor.x, lx, anchor.y, ly);
   center = box.center();
-  fillColor = RGB32(0, 0, 0);
-  borderColor = RGB32(0, 0, 0);
-  borderRadius = 0;
-  borderWidth = 0;
-  opacity = 1.0f;
-  borderBox = iBox2(box);
-  Serial.println("Generating parameters for widget: ");
-  _printBox(iBox2(anchor.x, dimensions.x, anchor.y, dimensions.y));
+  dimensions = iVec2(box.lx(), box.ly());
+
+  maxCharsInLine = lx / fontSz.x;
+  maxLines = ly / fontSz.y;
+
+  setBorderWidth(borderWidth);
+
+  refitText();
+}
+
+void WTextBox::fastSetText(std::string txt) {
+  txt = removeControlChars(txt);
+  if (txt.size() <= maxCharsInLine) {
+    contents.clear();
+    contents.append(removeControlChars(txt));
+    contentByLine.clear();
+    contentByLine.push_back(contents);
+  }
+}
+
+void WTextBox::setText(std::string txt) {
+  contents.clear();
+  contents.append(removeControlChars(txt));
+  refitText();
+}
+
+void WTextBox::refitText() {
+  int16_t lines = 0;
+  int16_t charsInLine = 0;
+
+  Serial.println("Refitting text: ");
+  Serial.println(contents.data());
+  Serial.print("maxlines: ");
+  Serial.print(maxLines);
+  Serial.print(" | maxchars: ");
+  Serial.println(maxCharsInLine);
+
+  contentByLine.clear();
+  contentByLine.push_back("");
+  auto currentLine = contentByLine.begin();
+  for (auto curChar : contents) {
+    if (lines == maxLines) {
+      Serial.print("breaking at line ");
+      Serial.println(lines);
+      break;
+    }
+    if (charsInLine >= maxCharsInLine) {
+      charsInLine = 0;
+      ++lines;
+
+      contentByLine.push_back(std::string());
+
+      // resetting the invalidated currentLine iterator to the last element
+      // of the contentByLine vector
+      currentLine = contentByLine.end();
+      --currentLine;
+    }
+    currentLine->push_back(curChar);
+    switch (curChar) {
+    case '\n': {
+      charsInLine = 0;
+      ++lines;
+      break;
+    }
+    default: {
+      ++charsInLine;
+      break;
+    }
+    }
+  }
+
+  Serial.println("Refitting complete");
+}
+
+void WTextBox::render() {
+  auto line = contentByLine.begin();
+  auto end = contentByLine.end();
+  uint8_t lineCount = 0;
+  iVec2 cursor = iVec2(anchor.x, anchor.y + fontSz.y);
+
+  // while loop avoids rendering empty text boxes
+  while (line != end && lineCount < maxLines) {
+    canvas->drawText(line->data(), cursor, fillColor, *fontFace, true);
+    ++line;
+    ++lineCount;
+    cursor.y += fontSz.y;
+  }
+}
+
+void WTextBox::_generateExtraParameters() {
+  fontFace = baseFont;
+
+#ifdef DEBUG
+  Serial.print("Calculating font size of textbox \"");
+  Serial.print(id.data());
+  Serial.print("\"... ");
+  Serial.println();
+#endif
+
+  // setting the x-width through the graphics library
+  int xadv = 0;
+  auto fontBox = canvas->measureChar('A', iVec2(0, 0), *fontFace, &xadv);
+  fontSz.x = xadv;
+  fontSz.y = fontFace->yAdvance;
+
+  clip = true;
+  wrap = true;
+
+  Serial.print("got: ");
+  Serial.print(fontSz.x);
+  Serial.print("x");
+  Serial.print(fontSz.y);
+  Serial.println();
+
+  Serial.print("Max lines shown in box: ");
+  Serial.print(maxLines);
   Serial.println();
 }
 
-void TextBox::_renderSelf() {
-  if (borderWidth > 0) {
-    canvas->fillRoundRect(borderBox, borderRadius, borderColor, opacity);
-  }
-  canvas->fillRoundRect(box, cornerRadius, fillColor, opacity);
-  // canvas->drawChar('c', iVec1(0,0), fillColor,  GFXfont);
-}
-
-void LoadingBar::setFillDirection(FILL_DIRECTION newFD) {
+void WProgressBar::setFillDirection(FILL_DIRECTION newFD) {
   if (fillDirection != newFD) {
     RGB32 tempFill = fillColor;
     fillColor = RGB32_Transparent;
     // reset progressBox to max size
-    setSize(box);
+    setSize(box.lx(), box.ly());
     switch (newFD) {
     case UP:
       progressBoxMax = progressBox.ly();
@@ -147,8 +261,8 @@ void LoadingBar::setFillDirection(FILL_DIRECTION newFD) {
   }
 }
 
-void LoadingBar::setSize(iBox2 newBox) {
-  box = iBox2(newBox);
+void WProgressBar::setSize(uint16_t lx, uint16_t ly) {
+  box = iBox2(anchor.x, dimensions.x, anchor.y, dimensions.y);
   progressBox = iBox2(box);
 
   progressBox.minX += 8;
@@ -173,7 +287,7 @@ void LoadingBar::setSize(iBox2 newBox) {
   }
 }
 
-void LoadingBar::setProgress(int prog) {
+void WProgressBar::setProgress(int prog) {
   if (prog >= 100) {
     progress = 100;
   } else if (prog < 0) {
@@ -201,37 +315,34 @@ void LoadingBar::setProgress(int prog) {
   Serial.println('c');
 }
 
-void LoadingBar::_renderSelf() {
+void WProgressBar::render() {
   // if (borderWidth > 0) {
   //   canvas->fillRoundRect(borderBox, borderRadius, borderColor, opacity);
   // }
   // canvas->fillRoundRect(box, cornerRadius, backgroundColor, opacity);
   canvas->fillRect(progressBox, backgroundColor);
 
-  Serial.print("Rendering prog bar with box: ");
   _printBox(progressBox);
   Serial.println();
 
   // canvas->fillRoundRect(progressBox, cornerRadius, fillColor, opacity);
-  _renderChildren();
 }
 
 void setDefaultCanvas(Image<RGB565> *cnv) { defaultCanvas = cnv; }
 
-void link(Widget *parent, Widget *child) {
-  bool addChild = true;
-  for (auto &existingChild : parent->children) {
-    if (existingChild == child) {
-      addChild = false;
+std::string removeControlChars(std::string txt) {
+  auto end = txt.size();
+  auto curChar = txt.begin();
+
+  for (int n = 0; n != end; ++n) {
+    if (std::iscntrl(*curChar) && *curChar != '\n') {
+      curChar = txt.erase(curChar);
+      --end;
+    } else {
+      ++curChar;
     }
   }
-  if (addChild == true) {
-    parent->addChild(child);
-  }
-
-  if (child->parent != parent) {
-    child->setParent(parent);
-  }
+  return txt;
 }
 
-} // namespace mkshft_display
+} // namespace mkshft_ui

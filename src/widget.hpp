@@ -1,12 +1,26 @@
 #ifndef WIDGET_H_
 #define WIDGET_H_
 
+#include <Arduino.h>
 #include <list>
 #include <math.h>
+#include <string>
 #include <tgx.h>
+#include <vector>
+
+#include <fonts.hpp>
+
+#define DEBUG
 
 inline namespace mkshft_ui {
 using namespace tgx;
+
+enum WidgetType {
+  W_BOX,
+  W_TEXT_BOX,
+  W_CIRCLE,
+  W_PROGRESS_BAR,
+};
 
 extern Image<RGB565> *defaultCanvas;
 /**
@@ -15,39 +29,21 @@ extern Image<RGB565> *defaultCanvas;
  */
 class Widget {
 public:
-  Widget()
-      : parent(nullptr), canvas(defaultCanvas), anchor(iVec2(0, 0)),
-        dimensions(iVec2(canvas->lx(), canvas->ly())) {
+  Widget(std::string id)
+      : id(id), canvas(defaultCanvas), anchor(iVec2(0, 0)),
+        dimensions(iVec2(0, 0)) {
     _generateParameters();
   }
-  Widget(iVec2 anchor, iVec2 dmsn)
-      : parent(nullptr), canvas(defaultCanvas), anchor(anchor),
-        dimensions(dmsn) {
+  Widget(std::string id, iVec2 anchor, iVec2 dmsn)
+      : id(id), canvas(defaultCanvas), anchor(anchor), dimensions(dmsn) {
     _generateParameters();
   }
-  Widget(Image<RGB565> *cnv, iVec2 anchor, iVec2 dmsn)
-      : parent(nullptr), canvas(cnv), anchor(anchor), dimensions(dmsn) {
+  Widget(std::string id, Image<RGB565> *cnv, iVec2 anchor, iVec2 dmsn)
+      : id(id), canvas(cnv), anchor(anchor), dimensions(dmsn) {
     _generateParameters();
   }
 
-  Widget(Widget const *parent) : parent(parent), canvas(parent->canvas) {
-    // TODO: figure out a sane way to create and attach widgets to parents
-    // Maybe build on single root render tree idea
-    _generateParametersFromParent();
-    for (int n = 0; n < 4; n++) {
-      margin[n] = parent->margin[n];
-      padding[n] = parent->padding[n];
-    }
-  }
-
-  Widget(Widget const *parent, iVec2 anchor, iVec2 dmsn)
-      : parent(parent), canvas(parent->canvas) {
-    for (int n = 0; n < 4; n++) {
-      margin[n] = parent->margin[n];
-      padding[n] = parent->padding[n];
-    }
-  }
-
+  std::string getID() { return id; }
   void setFillColor(RGB32 fill) { fillColor = fill; };
   void setBorderColor(RGB32 border) { borderColor = border; };
   void setColors(RGB32 fill, RGB32 border) {
@@ -55,7 +51,8 @@ public:
     borderColor = border;
   }
 
-  virtual void setSize(iBox2 newBox);
+  virtual void setAnchor(uint16_t x, uint16_t y);
+  virtual void setSize(uint16_t lx, uint16_t ly);
   void setMargin(uint16_t all);
   void setMargin(uint16_t vert, uint16_t horz);
   void setMargin(uint16_t top, uint16_t horz, uint16_t bottom);
@@ -64,16 +61,15 @@ public:
   void setBorderWidth(int bw);
   void setOpacity(float op) { this->opacity = op; }
 
-  void render();
-  void addChild(Widget *newChild);
-  void setParent(Widget const *newParent) { parent = newParent; };
+  virtual void render();
+
   Box2<int> getBox();
 
-  Widget const *parent;
-  std::list<Widget *> children;
-
 protected:
-  Image<RGB565> *const canvas;
+  static const WidgetType type;
+  std::string id;
+  uint16_t childCount = 0;
+  Image<RGB565> *canvas;
   iVec2 anchor;
   iVec2 center;
   iVec2 dimensions;
@@ -91,68 +87,109 @@ protected:
   iBox2 box;
   iBox2 borderBox;
 
-  virtual void _renderSelf();
-  virtual void _renderChildren();
   virtual void _generateParameters();
-  virtual void _generateParametersFromParent();
+  virtual void _generateExtraParameters() = 0;
 };
 
+class WBox : public Widget {
+  using Widget::Widget;
+
+  static const WidgetType type;
+
+protected:
+  void _generateExtraParameters(){};
+};
 /**
  * Circle widget, hacks with default widget rendering
- * 
+ *
  * TODO: convert to use tgx::fillCircle functions
  */
-class Circle : public Widget {
+class WCircle : public Widget {
 public:
-  Circle(iVec2 center, int radius) : Widget(center, iVec2(radius, radius)) {
+  WCircle(std::string id) : Widget(id, iVec2(0, 0), iVec2(0, 0)) {
+    setCornerRadius(0);
+  }
+
+  WCircle(std::string id, iVec2 center, int radius)
+      : Widget(id, center, iVec2(radius, radius)) {
     setCornerRadius(radius);
   }
-  Circle(Image<RGB565> *cnv, iVec2 anchor, int radius)
-      : Widget(cnv, anchor, iVec2(radius, radius)) {
+  WCircle(std::string id, Image<RGB565> *cnv, iVec2 anchor, int radius)
+      : Widget(id, cnv, anchor, iVec2(radius, radius)) {
     setCornerRadius(radius);
   }
+
+  static const WidgetType type;
+
+protected:
+  void _generateExtraParameters(){};
 };
 
 /**
- * Fundamental text rendering widget, rendering uses tgx character width 
+ * Fundamental text rendering widget, rendering uses tgx character width
  * calculations to allow auto clipping and wrapping.
  *
  * TODO: word wrap instead of simple character wrapping
  */
-class TextBox : public Widget {
+class WTextBox : public Widget {
 public:
-  TextBox(Widget parent, String Text) : Widget(parent) {
-
+  WTextBox(std::string id) : Widget(id) {
+    _generateExtraParameters();
+    contents = "";
+    contentByLine.push_back("");
+  }
+  WTextBox(std::string id, std::string text) : Widget(id) {
+    _generateExtraParameters();
+    contents = text;
+    refitText();
   }
 
+  static const WidgetType type;
   bool clip;
   bool wrap;
+  iVec2 fontSz;
+  std::string contents;
+  std::vector<std::string> contentByLine;
+
+  void setSize(uint16_t lx, uint16_t ly) override;
+  /**
+   * Sets text without refitting. Checks only if the text fits on a single line
+   * and does nothing if it cannot fit into a single line.
+   */
+  void fastSetText(std::string txt);
+  void setText(std::string txt);
+  void refitText();
+  void render() override;
 
 protected:
+  const GFXfont *fontFace;
+  int maxLines = 1;
+  int maxCharsInLine = 1;
+
   // overload for text
-  void _renderSelf() override;
+  void _generateExtraParameters() override;
 };
 
 /**
  * Loading Bar widget which adjusts progress automatically according to width.
  * Fill directions are currently coded for down -> up, and left -> right.
- * 
+ *
  * TODO: figure out now to efficiently code for bars that reverse direction.
  */
-class LoadingBar : public Widget {
+class WProgressBar : public Widget {
 public:
   enum FILL_DIRECTION { UP, DOWN, LEFT, RIGHT };
 
-  LoadingBar() : Widget(), fillDirection(RIGHT) { setSize(box); };
-  LoadingBar(Widget const *parent) : Widget(parent), fillDirection(RIGHT) {
-    Serial.println("Creating loadingbar");
-    setSize(box);
+  WProgressBar(std::string id) : Widget(id), fillDirection(RIGHT) {
+    setSize(box.lx(), box.ly());
     setFillDirection(fillDirection);
     setProgress(0);
   };
 
+  static const WidgetType type;
+
   void setFillDirection(FILL_DIRECTION newFD);
-  void setSize(iBox2 newBox) override;
+  void setSize(uint16_t lx, uint16_t ly) override;
   void setProgress(int prog);
   void setBackgroundColor(RGB32 background) { backgroundColor = background; }
   void setColors(RGB32 fill, RGB32 background, RGB32 border) {
@@ -160,6 +197,8 @@ public:
     borderColor = border;
     backgroundColor = background;
   }
+
+  void render() override;
 
 protected:
   RGB32 backgroundColor;
@@ -169,16 +208,25 @@ protected:
   float fProgressRatio;
   iBox2 progressBox;
 
-  void _renderSelf() override;
   // void _generateParameters() override;
+  void _generateExtraParameters(){};
 };
 
 /**
  * Helper functions
  */
 
+/**
+ * Retargets the canvas, there is no way to gracefully switch to a new canvas
+ * right now, this may be removed later
+ */
 void setDefaultCanvas(Image<RGB565> *cnv);
-void link(Widget *parent, Widget *child);
+
+/**
+ * Removes all control characters except for newline '\n'
+ * formating space characters (e.g. \t \v) are also removed
+ */
+std::string removeControlChars(std::string txt);
 
 } // namespace mkshft_ui
 #endif // WIDGET_H_
