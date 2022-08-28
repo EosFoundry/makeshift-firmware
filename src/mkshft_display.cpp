@@ -1,5 +1,7 @@
 #include <mkshft_display.hpp>
 inline namespace mkshft_display {
+
+bool displayReady = false;
 // Display driver with the pins
 ILI9341_T4::ILI9341Driver tft(CS_PIN, DC_PIN, SCK_PIN, SDI_PIN, SDO_PIN,
                               RST_PIN, TOUCH_CS_PIN, TOUCH_IRQ_PIN);
@@ -15,38 +17,44 @@ uint16_t fb[LX * LY];
 tgx::Image<RGB565> canvas(fb, LX, LY);
 
 void init() {
+
   Serial.println("Initializing serial communication to display...");
   tft.output(&Serial); // send debug info to serial port.
 
-  while (!tft.begin(SPI_SPEED)) {
-    Serial.println("Initialization error...");
+  int loopCount = 0;
+  while (!tft.begin(SPI_SPEED) && loopCount < 5) {
+    Serial.println("Attempting to reach ILI9341...");
     delay(1000);
+    loopCount++;
   }
+  if (loopCount <= 5) {
+    displayReady = true;
+  } // displayReady initialized to false
 
-  Serial.println("Attaching internal framebuffer...");
-  tft.setFramebuffers(internal_fb);
+  if (displayReady) {
+    Serial.println("Attaching internal framebuffer...");
+    tft.setFramebuffers(internal_fb);
 
-  Serial.println("Attaching differential buffers...");
-  tft.setDiffBuffers(&diff1, &diff2);
+    Serial.println("Attaching differential buffers...");
+    tft.setDiffBuffers(&diff1, &diff2);
 
-  Serial.println("Setting diff gap to");
-  tft.setDiffGap(10);
+    Serial.println("Setting diff gap to");
+    tft.setDiffGap(10);
 
-  Serial.println("Setting vsync spacing");
-  tft.setVSyncSpacing(2);
+    Serial.println("Setting vsync spacing");
+    tft.setVSyncSpacing(2);
 
-  Serial.println("Setting refresh rate");
-  tft.setRefreshRate(120);
+    Serial.println("Setting refresh rate");
+    tft.setRefreshRate(120);
 
-  Serial.println("Setting screen rotation");
-  tft.setRotation(3); // landscape
+    Serial.println("Setting screen rotation");
+    tft.setRotation(3); // landscape
 
-  Serial.println("Clearing screen");
-  tft.clear(0);
+    Serial.println("Clearing screen");
+    tft.clear(0);
 
-  // delay(1);
-
-  tft.update(fb);
+    tft.update(fb);
+  }
 }
 
 long int lastRenderTime = 0;
@@ -58,22 +66,26 @@ bool fullUpdate = false;
  * The update function
  */
 void update() {
-  tft.update(fb, fullUpdate);
-  currRenderTime = millis();
-  renderDelta = currRenderTime - lastRenderTime;
-  if (renderDelta > FULL_UPDATE_PERIOD_MS) {
-    fullUpdate = true;
-  } else {
-    fullUpdate = false;
+  if (displayReady) {
+    tft.update(fb, fullUpdate);
+    currRenderTime = millis();
+    renderDelta = currRenderTime - lastRenderTime;
+    if (renderDelta > FULL_UPDATE_PERIOD_MS) {
+      fullUpdate = true;
+    } else {
+      fullUpdate = false;
+    }
+    lastRenderTime = currRenderTime;
   }
-  lastRenderTime = currRenderTime;
 }
 
 void calibrateTouch() {
-  int touch_calib[4] = {0, 0, 0, 0};
+  if (displayReady) {
+    int touch_calib[4] = {0, 0, 0, 0};
 
-  tft.calibrateTouch(touch_calib);      // uncomment this line to run touch
-  tft.setTouchCalibration(touch_calib); // set touch calibration
+    tft.calibrateTouch(touch_calib);      // uncomment this line to run touch
+    tft.setTouchCalibration(touch_calib); // set touch calibration
+  }
 }
 
 } // namespace mkshft_display

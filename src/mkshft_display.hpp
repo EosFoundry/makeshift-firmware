@@ -6,7 +6,6 @@
 #include <ILI9341_T4.h>
 #include <tgx.h>
 
-
 inline namespace mkshft_display {
 using namespace tgx;
 const uint8_t CS_PIN = 9;
@@ -25,6 +24,7 @@ const uint16_t LY = 240;
 
 const int FULL_UPDATE_PERIOD_MS = 100;
 
+extern bool displayReady;
 extern ILI9341_T4::ILI9341Driver tft;
 extern uint16_t fb[LX * LY];
 extern tgx::Image<RGB565> canvas;

@@ -114,7 +114,7 @@ void testUI() {
   tgx::iBox2 boxxx = tgx::iBox2(0,0,0,0);
   int xadv = 0;
   std::string testString = "beegin..";
-  for (char c = 20; c < 128; ++c) {
+  for (char c = 20; c <= 127; ++c) {
     boxxx = defaultCanvas->measureChar(c, iVec2(25, 25), *baseFont, &xadv);
     // Serial.print("Size of baseFont char \'");
     // Serial.print(c);
