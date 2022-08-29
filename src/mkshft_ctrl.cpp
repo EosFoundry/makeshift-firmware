@@ -149,56 +149,62 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
 void handleSymExp(std::string exp) {
 #ifdef DEBUG
-  // start debug message
-  std::string msg;
+  // // start debug message
+  // std::string msg;
 
-  int sz = exp.size();
-  int len = 2;
-  while (sz > 10) {
-    sz = sz / 10;
-    ++len;
-  }
+  // int sz = exp.size();
+  // int len = 2;
+  // while (sz > 10) {
+  //   sz = sz / 10;
+  //   ++len;
+  // }
 
-  // do some size shenanigans because std::to_string doesn't exist
-  char buf[len];
-  snprintf(buf, len, "%u", exp.size());
-  msg += buf;
+  // // do some size shenanigans because std::to_string doesn't exist
+  // char buf[len];
+  // snprintf(buf, len, "%u", exp.size());
+  // msg += buf;
 #endif
 
   auto tokens = mkshft_lisp::tokenize(exp);
 
-  msg = "tokenized exp";
-  sendString(msg);
-
-  std::string tkn;
-  for (auto t : tokens) {
-    tkn = "TokenType: ";
-    switch (t.type) {
-    case PAR:
-      tkn += "PAR";
-      break;
-    case SPC:
-      tkn += "SPC";
-      break;
-    case SYM:
-      tkn += "SYM";
-      break;
-    case NUM:
-      tkn += "NUM";
-      break;
-    default:
-      tkn += "UNDEF";
-      break;
-    }
-    tkn += " | data: ";
-    tkn.append(t.value);
-    sendString(tkn);
-  }
-  
-  auto res = mkshft_lisp::matchParens(tokens);
+  SymExp res = mkshft_lisp::parseTokens(tokens);
   if (res.type != SexpType::ERROR) {
-
+    log("Parsing successful");
+    Serial.println(res.type);
+    auto symRes = toSym(res);
+    log(symRes);
   }
+
+#ifdef DEBUG
+  // msg = "tokenized exp";
+  // sendString(msg);
+
+  // std::string tkn;
+  // for (auto t : tokens) {
+  //   tkn = "TokenType: ";
+  //   switch (t.type) {
+  //   case PAR:
+  //     tkn += "PAR";
+  //     break;
+  //   case SPC:
+  //     tkn += "SPC";
+  //     break;
+  //   case SYM:
+  //     tkn += "SYM";
+  //     break;
+  //   case NUM:
+  //     tkn += "NUM";
+  //     break;
+  //   default:
+  //     tkn += "UNDEF";
+  //     break;
+  //   }
+  //   tkn += " | data: ";
+  //   tkn.append(t.value);
+  //   sendString(tkn);
+  // }
+#endif
+
 
   // Serial.write(buffer, size);
   // Serial.println();

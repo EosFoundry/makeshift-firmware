@@ -15,7 +15,7 @@
 #include <mkshft_led.hpp>
 #include <mkshft_ui.hpp>
 
-#define DEBUG_MKLISP 7
+#define DEBUG_MKLISP 6
 inline namespace mkshft_lisp {
 enum CarKeys {
   LIST_OPEN = '[',
@@ -39,17 +39,23 @@ enum SexpType {
   FLOAT,
 };
 enum LerrType {
-  NO_ERROR,
   UNKNOWN_OP,
   TYPE_ERROR,
   DIV_ZERO,
   SYNTAX_ERROR,
   UNKNOWN_SYMBOL,
+  MISMATCH_ARGUMENTS,
+  NO_ERROR,
 };
-const std::string LerrMsg[5] = {
-    "Error: No error!...???", "Error: Unknown Operation",
-    "Error: Wrong type given", "Error: Division by zero",
-    "Error: Syntax error"};
+const std::string LerrMsg[LerrType::NO_ERROR + 1] = {
+    "Error: Unknown Operation",
+    "Error: Wrong type given",
+    "Error: Division by zero",
+    "Error: Syntax error",
+    "Error: Unknown symbol",
+    "Error: No matching function for given arguments",
+    "Error: No error!...???",
+};
 enum TokenType {
   PAR,
   SPC,
@@ -61,11 +67,15 @@ enum TokenType {
 struct SymExp {
   SexpType type = NIL;
   int numInt = 0;
-  float numFloat = 0.0;
+  float numFlt = 0.0;
   std::string sym = "";
   LerrType errType = NO_ERROR;
   std::list<SymExp> list;
-  std::list<SymExp>::iterator listItr = list.begin();
+  SymExp(std::list<SymExp> l) : list(l), type(LIST){};
+  SymExp(std::string s) : sym(s), type(SYMBOL){};
+  SymExp(float f) : numFlt(f), type(FLOAT) { numInt = (int)roundf(f); };
+  SymExp(int i) : numInt(i), type(INTEGER), numFlt((float)i){};
+  SymExp() {}
 };
 
 struct Ltoken {
@@ -77,6 +87,7 @@ typedef std::function<SymExp(SymExp)> Lfunc;
 
 extern std::map<std::string, SymExp> symbols;
 extern std::map<std::string, Lfunc> unsafe_callables;
+extern std::map<std::string, Lfunc> callables;
 extern std::function<void(std::string)> loggingFunction;
 extern bool logFuncSet;
 
@@ -87,29 +98,35 @@ std::list<Ltoken> tokenize(std::string);
 SymExp matchParens(std::list<Ltoken>);
 SymExp parseTokens(std::list<Ltoken>);
 
-// std::list<Lval> atomize
-SymExp symInt(int);
-SymExp symFlt(float);
-SymExp symStr(std::string);
-SymExp cons(SymExp, SymExp);
-SymExp eval(SymExp);
-SymExp car(SymExp);
+// library
+SymExp colorPixel(SymExp args);
 
-SymExp quote(SymExp);
+// core functions
+SymExp cons(SymExp);
+SymExp eval(SymExp);
+SymExp head(SymExp);
+SymExp tail(SymExp);
+SymExp map(SymExp);
+
+// internals
+SymExp nil();
+SymExp toSym(SymExp);
 SymExp log(std::string);
-SymExp log(int);
+SymExp logList(std::list<SymExp>, int);
+SymExp log(SymExp);
 SymExp logln(std::string);
 SymExp error(LerrType);
 SymExp error(LerrType, SymExp);
 SymExp error(LerrType, std::string);
 SymExp error(LerrType, SymExp, std::string);
+SymExp checkShape(SexpType, uint8_t, SymExp);
+SymExp inspect(SymExp);
 
 // unsafe calls where bad inputs can segfault or memleak
 SymExp unsafe_parse(std::list<Ltoken>);
-SymExp quoteNumInt(SymExp);
-SymExp quoteNumFlt(SymExp);
-SymExp quoteList(SymExp);
-SymExp quoteSym(SymExp);
+SymExp intToSym(SymExp);
+SymExp fltToSym(SymExp);
+SymExp listToSym(SymExp, int);
 SymExp unsafe_callUI(SymExp);
 } // namespace mkshft_lisp
 #endif

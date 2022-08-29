@@ -209,7 +209,7 @@ protected:
   iBox2 progressBox;
 
   // void _generateParameters() override;
-  void _generateExtraParameters(){};
+  void _generateExtraParameters() override {};
 };
 
 /**
