@@ -17,6 +17,7 @@
 
 #define DEBUG_MKLISP 6
 inline namespace mkshft_lisp {
+
 enum CarKeys {
   LIST_OPEN = '[',
   LIST_CLOSE = ']',
@@ -69,12 +70,12 @@ struct SymExp {
   int numInt = 0;
   float numFlt = 0.0;
   std::string sym = "";
-  LerrType errType = NO_ERROR;
   std::list<SymExp> list;
-  SymExp(std::list<SymExp> l) : list(l), type(LIST){};
-  SymExp(std::string s) : sym(s), type(SYMBOL){};
-  SymExp(float f) : numFlt(f), type(FLOAT) { numInt = (int)roundf(f); };
-  SymExp(int i) : numInt(i), type(INTEGER), numFlt((float)i){};
+  LerrType errType = NO_ERROR;
+  SymExp(std::list<SymExp> l) : type(LIST), list(l){};
+  SymExp(std::string s) : type(SYMBOL), sym(s){};
+  SymExp(float f) : type(FLOAT), numFlt(f) { numInt = (int)roundf(f); };
+  SymExp(int i) : type(INTEGER), numInt(i), numFlt((float)i){};
   SymExp() {}
 };
 

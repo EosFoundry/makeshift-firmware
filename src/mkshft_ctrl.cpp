@@ -115,10 +115,6 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
 
   switch (header) {
   case PING: {
-    // std::string msg = "got ping, sending ACK";
-    // send((uint8_t *)msg.data(), msg.size());
-    uint8_t buf[1];
-    buf[0] = ACK;
     sendByte(ACK);
     break;
   }
@@ -170,7 +166,6 @@ void handleSymExp(std::string exp) {
   SymExp res = mkshft_lisp::parseTokens(tokens);
   if (res.type != SexpType::ERROR) {
     log("Parsing successful");
-    Serial.println(res.type);
     auto symRes = toSym(res);
     log(symRes);
   }

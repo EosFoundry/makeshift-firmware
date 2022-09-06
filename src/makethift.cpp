@@ -1,6 +1,7 @@
 #include <makethift.hpp>
 
 inline namespace mkshft_lisp {
+
 std::map<std::string, Lfunc> unsafe_callables;
 std::function<void(std::string)> loggingFunction;
 bool logFuncSet = false;
@@ -15,10 +16,11 @@ void init(std::function<void(std::string)> logFunc) {
 std::list<Ltoken> tokenize(std::string exp) {
   std::list<Ltoken> tokens;
   Ltoken currToken;
-
+#if DEBUG_MKLISP > 6
   log("Tokenizing expression: \"");
   log(exp);
   log("\"");
+#endif
 
   auto expCursor = exp.begin();
   auto end = exp.end();
@@ -125,7 +127,7 @@ std::list<Ltoken> tokenize(std::string exp) {
 }
 
 SymExp matchParens(std::list<Ltoken> tokenList) {
-  Serial.println("matching parens");
+  // Serial.println("matching parens");
   int depth = 0;
   int netParens = 0;
   for (auto token : tokenList) {
@@ -154,7 +156,7 @@ SymExp matchParens(std::list<Ltoken> tokenList) {
 }
 
 SymExp parseTokens(std::list<Ltoken> tokenList) {
-  logln("parser entry point");
+  // logln("parser entry point");
   SymExp parenErr = matchParens(tokenList);
   if (parenErr.type != ERROR) {
     return unsafe_parse(tokenList);
@@ -165,28 +167,28 @@ SymExp parseTokens(std::list<Ltoken> tokenList) {
 
 SymExp unsafe_parse(std::list<Ltoken> tokenList) {
   SymExp ret;
-  logln("unsafe_parse entry");
+  // logln("unsafe_parse entry");
   if (tokenList.front().value.at(0) == LIST_OPEN &&
       tokenList.back().value.at(0) == LIST_CLOSE) {
-    log(tokenList.front().value);
-    log(tokenList.back().value);
+    // log(tokenList.front().value);
+    // log(tokenList.back().value);
     tokenList.pop_front();
     tokenList.pop_back();
   }
-  log(SymExp((int)tokenList.size()));
+  // log(SymExp((int)tokenList.size()));
   if (tokenList.size() == 1) { // the default case
     auto token = tokenList.front();
-    log("token type:: ");
+    // log("token type:: ");
 
     switch (token.type) {
     case SYM: {
-      log("SYM");
+      // log("SYM");
       ret = SymExp(tokenList.front().value);
       break;
     }
 
     case NUM: {
-      log("NUM");
+      // log("NUM");
       if (token.value.find('.') == std::string::npos) {
         ret = SymExp(atoi(token.value.data()));
       } else {
@@ -209,7 +211,7 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
     int numTokens = tokenList.size();
     int tokensConsumed = 0;
     while (tokensConsumed < numTokens) {
-      log(token->value);
+      // log(token->value);
       delay(10);
       switch (token->type) {
       case SYM: {
@@ -236,7 +238,7 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
         // 0, the loop has found the last close bracket and the result sublist
         // is sent to unsafe_parse() recursively.
         do {
-          log(token->value);
+          // log(token->value);
           if (token->type == PAR) { // tracks depth
             if (token->value.data()[0] == LIST_OPEN) {
               ++depth;
@@ -251,14 +253,15 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
         } while (depth != 0);
 
         auto parseResult = unsafe_parse(subList);
-        // force overwrite in case of single element lists
-        if (tmp.type != LIST) {
+        // force overwrite to list in case of single element lists
+        // the longer version: the default return for non-list atomic
+        // expressions is that element
+        if (parseResult.type != LIST) {
           std::list<SymExp> tempList;
           tempList.push_back(parseResult);
           tmp = SymExp(tempList);
         } else {
-          tmp = SymExp(parseResult);
-
+          tmp = parseResult;
         }
         break;
       }
@@ -423,23 +426,21 @@ SymExp listToSym(SymExp lst, int depth) {
   SymExp ret = SymExp();
   ret.type = SYMBOL;
   ret.sym.append("[ ");
-  log("listToSym, depth");
-  log(depth);
   for (auto sexp : lst.list) {
     if (sexp.type == LIST) {
       if (depth >= 5) {
-        ret.sym.append(toSym(head(sexp)).sym);
-        ret.sym.append("[ ... ]");
+        ret.sym.append("[...] ");
       } else {
         auto tmp = listToSym(sexp, depth + 1);
         ret.sym.append(tmp.sym);
+        ret.sym.append(" ");
       }
     } else {
       ret.sym.append(toSym(sexp).sym);
+      ret.sym.append(" ");
     }
-    ret.sym.append(" \n");
   }
-  ret.sym.append("]\n");
+  ret.sym.append("]");
   return ret;
 }
 
@@ -487,7 +488,7 @@ SymExp log(SymExp sexp) {
     break;
   }
   case LIST: {
-    return logList(sexp.list, 0);
+    return log(listToSym(sexp, 0));
     break;
   }
   default: {
