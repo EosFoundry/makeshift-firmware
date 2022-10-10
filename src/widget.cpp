@@ -6,6 +6,7 @@ Image<RGB565> *defaultCanvas = nullptr;
 
 const WidgetType WBox::type = W_BOX;
 const WidgetType WCircle::type = W_CIRCLE;
+const WidgetType WTriangle::type = W_TRIANGLE;
 const WidgetType WTextBox::type = W_TEXT_BOX;
 const WidgetType WProgressBar::type = W_PROGRESS_BAR;
 
@@ -114,6 +115,11 @@ void Widget::_generateParameters() {
   // _printBox(iBox2(anchor.x, dimensions.x, anchor.y, dimensions.y));
   // Serial.println();
 #endif
+}
+
+void WTriangle::render() {
+  // triangles do not have a borderless fill function
+  canvas->fillTriangle(pA, pB, pC, fillColor, fillColor, opacity);
 }
 
 void WTextBox::setSize(uint16_t lx, uint16_t ly) {
@@ -329,6 +335,37 @@ void WProgressBar::render() {
 }
 
 void setDefaultCanvas(Image<RGB565> *cnv) { defaultCanvas = cnv; }
+
+uint8_t smallest(uint8_t a, uint8_t b, uint8_t c) {
+  if (a < b) {
+    if (a < c) {
+      return a;
+    } else {
+      return c;
+    }
+  } else { // if (b < a)
+    if (b < c) {
+      return b;
+    } else {
+      return c;
+    }
+  }
+}
+uint8_t largest(uint8_t a, uint8_t b, uint8_t c) {
+  if (a > b) {
+    if (a > c) {
+      return a;
+    } else {
+      return c;
+    }
+  } else { // if (b > a)
+    if (b > c) {
+      return b;
+    } else {
+      return c;
+    }
+  }
+}
 
 std::string removeControlChars(std::string txt) {
   auto end = txt.size();

@@ -7,6 +7,7 @@
 #include <string>
 #include <tgx.h>
 #include <vector>
+#include <array>
 
 #include <fonts.hpp>
 
@@ -15,10 +16,20 @@
 inline namespace mkshft_ui {
 using namespace tgx;
 
+uint8_t smallest(uint8_t, uint8_t, uint8_t) ;
+uint8_t largest(uint8_t, uint8_t, uint8_t) ;
+template <typename T, uint N> std::array<T, N> packArray(T* orig) {
+  std::array<T, N> arr;
+  for (uint n = 0; n < N; n++) {
+    arr[n] = orig[n];
+  }
+  return arr;
+};
 enum WidgetType {
   W_BOX,
   W_TEXT_BOX,
   W_CIRCLE,
+  W_TRIANGLE,
   W_PROGRESS_BAR,
 };
 
@@ -29,6 +40,10 @@ extern Image<RGB565> *defaultCanvas;
  */
 class Widget {
 public:
+  // override default for initiation that needs additional computation to
+  // generate
+  Widget() : canvas(defaultCanvas) {}
+
   Widget(std::string id)
       : id(id), canvas(defaultCanvas), anchor(iVec2(0, 0)),
         dimensions(iVec2(0, 0)) {
@@ -43,7 +58,6 @@ public:
     _generateParameters();
   }
 
-  std::string getID() { return id; }
   void setFillColor(RGB32 fill) { fillColor = fill; };
   void setBorderColor(RGB32 border) { borderColor = border; };
   void setColors(RGB32 fill, RGB32 border) {
@@ -63,10 +77,28 @@ public:
 
   virtual void render();
 
-  Box2<int> getBox();
+  WidgetType getType() { return type; }
+  std::string getID() { return id; }
+
+  iVec2 getAnchor() { return iVec2(anchor); }
+  iVec2 getCenter() { return iVec2(center); }
+  iVec2 getDimensions() { return iVec2(dimensions); }
+  std::array<uint16_t, 4> getPadding() {
+    return packArray<uint16_t, 4>(padding);
+  }
+  std::array<uint16_t, 4> getMargin() { return packArray<uint16_t, 4>(margin); }
+  RGB32 getFillColor() { return RGB32(fillColor); }
+  int getBorderWidth() { return borderWidth; }
+  RGB32 getBorderColor() { return RGB32(borderColor); }
+  float getOpacity() { return opacity; }
+  int getCornerRadius() { return cornerRadius; }
+  int getBorderRadius() { return borderRadius; }
+  iBox2 getBox() { return iBox2(box); }
+  iBox2 getBorderBox() { return iBox2(borderBox); }
+
+  static const WidgetType type;
 
 protected:
-  static const WidgetType type;
   std::string id;
   uint16_t childCount = 0;
   Image<RGB565> *canvas;
@@ -99,6 +131,7 @@ class WBox : public Widget {
 protected:
   void _generateExtraParameters(){};
 };
+
 /**
  * Circle widget, hacks with default widget rendering
  *
@@ -122,7 +155,51 @@ public:
   static const WidgetType type;
 
 protected:
-  void _generateExtraParameters(){};
+  void _generateExtraParameters() override {};
+};
+
+class WTriangle : public Widget {
+
+public:
+  WTriangle(std::string id)
+    : Widget(id, iVec2(0, 0), iVec2(0, 0)), pA(iVec2(0,0)), pB(iVec2(0,0)), pC(iVec2(0,0)) {}
+
+  // this constructor calls the overridden default
+  WTriangle(std::string idArg, iVec2 pA, iVec2 pB, iVec2 pC)
+    : Widget(), pA(pA), pB(pB), pC(pC) {
+    id = idArg;
+
+    setCornerRadius(0);
+    uint8_t xAB = abs(pA.x - pB.x);
+    uint8_t xAC = abs(pA.x - pC.x);
+    uint8_t xBC = abs(pB.x - pC.x);
+    uint8_t yAB = abs(pA.y - pB.y);
+    uint8_t yAC = abs(pA.y - pC.y);
+    uint8_t yBC = abs(pB.y - pC.y);
+
+    uint8_t lx = largest(xAB, xAC, xBC);
+    uint8_t ly = largest(yAB, yAC, yBC);
+    dimensions = iVec2(lx, ly);
+
+    uint8_t x = smallest(pA.x, pB.x, pC.x);
+    uint8_t y = smallest(pA.y, pB.y, pC.y);
+    anchor = iVec2(x, y);
+
+
+    // generate parameters
+    _generateParameters();
+  }
+
+  static const WidgetType type;
+
+  void render() override;
+
+protected:
+  iVec2 pA;
+  iVec2 pB;
+  iVec2 pC;
+
+  void _generateExtraParameters() override {};
 };
 
 /**
@@ -220,7 +297,8 @@ protected:
  * Retargets the canvas, there is no way to gracefully switch to a new canvas
  * right now, this may be removed later
  */
-void setDefaultCanvas(Image<RGB565> *cnv);
+void setDefaultCanvas(Image<RGB565>*);
+
 
 /**
  * Removes all control characters except for newline '\n'

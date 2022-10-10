@@ -10,6 +10,8 @@
 #include <overlay.hpp>
 #include <widget.hpp>
 
+#include <splash565.h>
+
 inline namespace mkshft_ui {
 
 /**
@@ -19,25 +21,39 @@ class Layout {
 public:
   Layout(std::string id) : id(id){};
 
-  std::map<std::string, Widget *> renderStack;
+  std::vector<std::string> renderingOrder = {};
+  std::map<std::string, Widget *> renderedWidgets;
   std::map<std::string, WProgressBar> progressBars;
   std::map<std::string, WTextBox> textBoxes;
   std::map<std::string, WCircle> circles;
+  std::map<std::string, WTriangle> triangles;
   std::map<std::string, WBox> boxes;
 
+
   std::string getId() { return id; };
-  void addWidget(WidgetType t, std::string id);
+
+  bool addWidget(WidgetType, std::string);
+  template <typename T> bool addWidget(T);
+  void removeWidget(std::string);
+  std::vector<std::string> getRenderStackWidgetIds();
 
 protected:
   std::string id;
-};
+  WBox *_emplaceWidget(WBox);
+  WCircle *_emplaceWidget(WCircle);
+  WTriangle *_emplaceWidget(WTriangle);
+  WProgressBar *_emplaceWidget(WProgressBar);
+  WTextBox *_emplaceWidget(WTextBox);
+  };
 
 extern Layout *currentLayout;
 extern std::map<std::string, Layout> layouts;
 
 void init(Image<RGB565> *cnv);
+
 void renderUI();
-void testUI();
+
+void splashScreen();
 } // namespace mkshft_ui
 
 #endif
