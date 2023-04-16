@@ -1,0 +1,6 @@
+[submodule "lib/ILI9341_T4"]
+	path = lib/ILI9341_T4
+	url = https://github.com/vindar/ILI9341_T4.git
+[submodule "lib/tgx"]
+	path = lib/tgx
+	url = https://github.com/vindar/tgx.git

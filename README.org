@@ -1,0 +1,57 @@
+* MakeShift Firmware
+  :PROPERTIES:
+  :TOC:      :include all
+  :END:
+
+This is the code that runs on the MakeShift device itself to read button inputs, control LEDs, and run the UI on the display.
+
+The MakeShift is built on top of the [[https://www.pjrc.com/store/teensy40.html][Teensy 4.0]]
+
+** Installing or Updating firmware
+
+The easiest way to install firmware right now is through getting a .HEX file and uploading it with the Teensy Loader tool that comes bundled with [[https://www.pjrc.com/teensy/td_download.html][Teensyduino]]
+
+Things you will have installed by the end:
+
+- Arduino IDE
+- Teensyduino
+
+*** Windows
+
+**** 1. Installing Teensyduino
+
+Follow the installation instructions from the official website - https://www.pjrc.com/teensy/td_download.html
+
+**** 2. Get the latest HEX file
+
+The latest releases can be found on the side bar or on the [[https://github.com/EosFoundry/makeshift-firmware/releases][releases page]].
+
+**** 3. Use the Teensy Loader to upload the HEX file
+
+
+
+** Building the Firmware from Source Code
+
+Getting the code and building it is a little more involved and requires setting up Platformio. This project uses [[https://platformio.org/][Platformio]] to manage all its dependencies and builds. If you're more comfortable with a UI-based building process, the easiest way is to get the [[https://platformio.org/platformio-ide][Platformio IDE]] for Visual Studio Code.
+
+*** Getting the source code
+
+If you're familiar with working with the command line, we recommend cloning the repo through git. If not, you can download the ZIP file from the green Code button at the top, unzip to a folder of your choice. This folder will be used as a workspace to fiddle with the firmware.
+
+*** Using Visual Studio Code with the Platformio IDE
+
+1. Hit up the extensions panel
+[[./docs/img/pio_setup_1.png]]
+
+2. Search for 'platformio' and install the extensions
+[[./docs/img/pio_setup_2.png]]
+
+3. Add the folder that you've cloned or unzipped as a project in PlatformIO
+[[./docs/img/pio_setup_3.png]]
+
+
+*** Linux
+*** Windows
+*** MacOS
+
+- TODO:
