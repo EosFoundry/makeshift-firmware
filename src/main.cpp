@@ -146,7 +146,7 @@ void loop() {
   }
   // check dial states
   for (int i = 0; i < core::szDialArray; i++) {
-    if (statePrev.dial[i] != stateCurr.dial[i]) {
+    if (stateCurr.dialRelative[i] != 0) {
       stateChanged = true;
 
       if (i == 1) { // update on just dial #2

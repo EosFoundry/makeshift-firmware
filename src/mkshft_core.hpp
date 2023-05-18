@@ -106,7 +106,7 @@ struct state_t {
   uint8_t buttonEdgeEventQueue[szButtonArray];
   uint16_t buttonExtended[szButtonArray];
   int dial[szDialArray];
-  uint8_t dialRelative[szDialArray];
+  int8_t dialRelative[szDialArray];
   uint32_t snapShotTime;
 };
 
@@ -167,7 +167,7 @@ extern volatile int dialState[szDialArray];
  * This array stores the relative state of each dial, obtained by taking a
  * delta as new dial state is recorded.
  */
-extern volatile uint8_t dialStateRelative[szDialArray];
+extern volatile int8_t dialStateRelative[szDialArray];
 
 /**
  *
