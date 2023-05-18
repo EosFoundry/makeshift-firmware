@@ -43,10 +43,6 @@ inline namespace core
     {
       dialTemp = dials[i].read();
       dialStateRelative[i] = dialTemp - dialState[i];
-      if (i == 0 && dialStateRelative[0] != 0)
-      {
-        Serial.print(dialStateRelative[i]);
-      }
 
       // These bools come from checking if the state we just read has passed the
       // upper or lower bound of the specific dial we're checking

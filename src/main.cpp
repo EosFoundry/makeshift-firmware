@@ -1,5 +1,3 @@
-#define DEBUG
-
 // std library
 #include <queue>
 
