@@ -4,6 +4,8 @@
 .ccls-cache/
 .ccls
 
+build/
+
 documentation/build/
 documentation/source/_*
 documentation/source/html/

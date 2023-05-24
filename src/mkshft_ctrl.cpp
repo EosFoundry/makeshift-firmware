@@ -1,12 +1,12 @@
 #include <mkshft_ctrl.hpp>
 
 inline namespace mkshft_ctrl {
-
+uint8_t UID[8];
 SLIPPacketSerial packetSerial;
 uint8_t connected = 0;
 
 void sendState(core::state_t st) {
-  int sz = 19;
+  int sz = 23;
   uint8_t buffer[sz];
 
   for (int n = 0; n < sz; n++) {
@@ -35,7 +35,8 @@ void sendState(core::state_t st) {
   // use bitwise AND (&) to break the integer dial state into 4 bytes
   uint8_t i = 0;
   for (uint8_t n = 0; n < 4; n++) {
-    i = (n * 4) + 2;
+    i = (n * 4) + 6;
+    buffer[n + 2] = st.dialRelative[n];
     buffer[i] += (st.dial[n] & 0xFF000000) >> 24;
     buffer[i + 1] += (st.dial[n] & 0x00FF0000) >> 16;
     buffer[i + 2] += (st.dial[n] & 0x0000FF00) >> 8;
@@ -43,16 +44,17 @@ void sendState(core::state_t st) {
   }
 
   // send endline as last byte
-  buffer[18] = '\n';
+  buffer[sz - 1] = '\n';
 
   send(STATE_UPDATE, buffer, sz);
 }
 
-void init(uint8_t const serial[4]) {
+void init() {
   Serial.begin(115200);
   // uint8_t initMessage[8];
 
   // initMessage[0] = MessageType::READY;
+  
 
   packetSerial.setStream(&Serial);
   packetSerial.setPacketHandler(&onPacketReceived);
@@ -60,33 +62,23 @@ void init(uint8_t const serial[4]) {
 
 // sends a ready signal through serial that bypasses the connection check
 void sendReady() {
-  std::string body = "MakeShift ready";
-  int size = body.size() + 1;
-  uint8_t buf[size];
-
-  // manually set header byte
-  buf[0] = (uint8_t)READY;
-
-  int idx = 1;
-  for (auto c : body) {
-    buf[idx] = c;
-    idx++;
-  }
-
-  // directly call PacketSerial.send()
-  packetSerial.send(buf, size);
+  std::string body = teensyUID64();
+  send(READY, (uint8_t *)body.data(), body.size());
 }
 
 void sendString(std::string body) {
   send(STRING, (uint8_t *)body.data(), body.size());
 }
 
+void sendLine(std::string body) {
+  sendString(body + "\n");
+}
+
 void sendByte(MessageType t) {
   uint8_t buf[1];
   buf[0] = (uint8_t)t;
-  if (connected) {
-    packetSerial.send(buf, 1);
-  }
+
+  sendRaw(buf, 1);
 }
 
 void send(MessageType t, const uint8_t *body, size_t sz) {
@@ -98,8 +90,14 @@ void send(MessageType t, const uint8_t *body, size_t sz) {
     buf[idx + 1] = body[idx];
   }
 
-  if (connected) {
-    packetSerial.send(buf, size);
+  sendRaw(buf, size);
+}
+
+void sendRaw(const uint8_t *body, size_t size) {
+  if(connected){
+    packetSerial.send(body, size);
+  } else {
+    Serial.write(body, size);
   }
 }
 

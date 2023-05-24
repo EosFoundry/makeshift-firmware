@@ -3,7 +3,7 @@
 inline namespace core {
 bool dialRollover[szDialArray] = {1, 1, 1, 1};
 
-int dialBounds[2][szDialArray] = {{0, 0, 0, 0}, {128, 128, 128, 128}};
+int dialBounds[2][szDialArray] = {{-127, -127, -127, -127}, {128, 128, 128, 128}};
 
 volatile bool buttonState[szButtonArray] = {0, 0, 0, 0, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0};
@@ -13,19 +13,19 @@ volatile uint16_t buttonExtendedState[szButtonArray] = {0, 0, 0, 0, 0, 0, 0, 0,
                                                         0, 0, 0, 0, 0, 0, 0, 0};
 
 volatile int dialState[szDialArray] = {0, 0, 0, 0};
-volatile uint8_t dialStateRelative[szDialArray] = {0, 0, 0, 0};
+volatile int dialStateRelative[szDialArray] = {0, 0, 0, 0};
 
 Encoder *dials;
 
 #ifdef DEBUG
 void corePrint(char *msg) {
-  Serial.print("CORE:: ");
-  Serial.print(msg);
+  std::string msgString = msg;
+  mkshft_ctrl::sendString("CORE:: " + msgString);
 }
 
 void corePrintln(char *msg) {
-  corePrint(msg);
-  Serial.println();
+  std::string msgString = msg;
+  mkshft_ctrl::sendLine("CORE:: " + msgString);
 }
 
 void test() { Serial.println("TEST TICKLE"); }
@@ -329,12 +329,15 @@ state_t getState() {
 
 void init() {
   Serial.println("CORE:: Initiating Core variables");
-  Serial.println("CORE:: creating timer");
 
   dials = new Encoder[szDialArray]{{pinEncoder_0_A, pinEncoder_0_B},
                                    {pinEncoder_1_A, pinEncoder_1_B},
                                    {pinEncoder_2_A, pinEncoder_2_B},
                                    {pinEncoder_3_A, pinEncoder_3_B}};
+  
+  for(int i = 0; i < szDialArray; i++){
+    dials[i].write(0);
+  }
 
   for (int i = 0; i < szMatrixPollArray; i++) {
     pinMode(pollPins[i], OUTPUT);

@@ -1,5 +1,7 @@
 #define DEBUG
 
+static char *serialNumber;
+
 // std library
 #include <queue>
 
@@ -37,7 +39,7 @@ const long readInputPeriodUs =
     1000L; // microseconds between dial + button scanning cycle
 const long ledRenderPeriodUs =
     26667L; // microseconds between updates to visual elements
-uint8_t serialNumber[4];
+ 
 
 /*
  * Packet counter to keep input and output on pace
@@ -65,36 +67,75 @@ uint8_t row, col;
 void ledUpdate();
 void testWidgets();
 
-void setup() {
-  teensySN(serialNumber);
+void setup()
+{
+  
+
+#ifdef DEBUG
+  delay(1000);
+#endif
 
 #ifdef MKSHFT_CTRL_H_
-  mkshft_ctrl::init(serialNumber);
+  mkshft_ctrl::init();
 #endif
 
   // TODO: organise define constants to MKSHFT
+#ifdef DEBUG
+  delay(500);
+#endif
+
 #ifdef CORE_H_
   core::init();
+#endif
+
+#ifdef DEBUG
+  delay(500);
 #endif
 
 #ifdef LED_H_
   mkshft_ledMatrix::init();
 #endif
 
+#ifdef DEBUG
+  delay(500);
+#endif
+
 #ifdef ILI9341_H_
   mkshft_display::init();
+#endif
+
+#ifdef DEBUG
+  delay(500);
 #endif
 
 #ifdef MKSHFT_UI_H_
   mkshft_ui::init(&canvas);
 #endif
 
-#ifdef MKSHFT_LISP_H_
-  mkshft_lisp::init(&mkshft_ctrl::sendString);
+#ifdef DEBUG
+  delay(500);
 #endif
 
+#ifdef MKSHFT_LISP_H_
+  mkshft_lisp::init(&mkshft_ctrl::sendLine);
+#endif
+
+  mkshft_ctrl::sendLine("MKSHFT:: Starting state scanning timers...");
+  
+#ifdef DEBUG
+  delay(500);
+#endif
   readInputTimer.begin(core::updateState, readInputPeriodUs);
+
+  mkshft_ctrl::sendLine("MKSHFT:: Successfully started state scanning timer.");
+
+  mkshft_ctrl::sendLine("MKSHFT:: Starting LED render timers...");
+
+#ifdef DEBUG
+  delay(500);
+#endif
   ledRenderTimer.begin(ledUpdate, ledRenderPeriodUs);
+  mkshft_ctrl::sendLine("MKSHFT:: Successfully started LED rendering timer.");
 
   // testWidgets();
 
@@ -112,16 +153,19 @@ void setup() {
   // baseLayout->render();
   //
 
+
   mkshft_ctrl::sendReady();
 }
 
-void loop() {
+void loop()
+{
   // delay(10);
   statePrev = stateCurr;
   stateCurr = core::getState();
 
   // check button states
-  for (int i = 0; i < core::szButtonArray; i++) {
+  for (int i = 0; i < core::szButtonArray; i++)
+  {
     // Serial.print("Button ");
     // Serial.print(i);
     // Serial.print(" state check ");
@@ -129,11 +173,15 @@ void loop() {
     // Serial.println();
     row = core::ButtonLookup[i][0];
     col = core::ButtonLookup[i][1];
-    if (statePrev.button[i] != stateCurr.button[i]) {
+    if (statePrev.button[i] != stateCurr.button[i])
+    {
       Pixel::edge_t edge;
-      if (stateCurr.button[i] == core::ON) {
+      if (stateCurr.button[i] == core::ON)
+      {
         edge = Pixel::RISE;
-      } else {
+      }
+      else
+      {
         edge = Pixel::FALL;
       }
       mkshft_ledMatrix::ledMatrix[row][col].triggeredSeqIdx = edge;
@@ -145,27 +193,31 @@ void loop() {
     // }
   }
   // check dial states
-  for (int i = 0; i < core::szDialArray; i++) {
-    if (statePrev.dial[i] != stateCurr.dial[i]) {
+  for (int i = 0; i < core::szDialArray; i++)
+  {
+    if (stateCurr.dialRelative[i] != 0)
+    {
       stateChanged = true;
 
-      if (i == 1) { // update on just dial #2
-        // multiply by 100 first to reduce scaling error
-        float progressPercent = (float)stateCurr.dial[i] * 100.0f;
+      // if (i == 1)
+      // { // update on just dial #2
+      //   // multiply by 100 first to reduce scaling error
+      //   // float progressPercent = (float)stateCurr.dial[i] * 100.0f;
 
-        // pull upper bound for now - negative dials become weirdness
-        progressPercent =
-            progressPercent / (float)core::dialBounds[core::MAX][i];
+      //   // // pull upper bound for now - negative dials become weirdness
+      //   // progressPercent =
+      //   //     progressPercent / (float)core::dialBounds[core::MAX][i];
 
-        int progress = round(progressPercent);
+      //   // int progress = round(progressPercent);
 
-        // testBar->setProgress(progress);
-        // baseLayout->render();
-      }
+      //   // testBar->setProgress(progress);
+      //   // baseLayout->render();
+      // }
     }
   }
   // send updates
-  if (stateChanged == true) {
+  if (stateChanged == true)
+  {
     mkshft_ctrl::sendState(stateCurr);
     // core::printStateToSerial(core::getState());
   }
@@ -175,7 +227,8 @@ void loop() {
   mkshft_ctrl::update();
 }
 
-void ledUpdate() {
+void ledUpdate()
+{
 #ifdef LED_H_
   mkshft_ledMatrix::updateState();
   mkshft_ledMatrix::showMatrix();
