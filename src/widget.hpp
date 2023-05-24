@@ -11,16 +11,15 @@
 
 #include <fonts.hpp>
 
-#define DEBUG
-
 inline namespace mkshft_ui {
 using namespace tgx;
 
 uint8_t smallest(uint8_t, uint8_t, uint8_t) ;
 uint8_t largest(uint8_t, uint8_t, uint8_t) ;
-template <typename T, uint N> std::array<T, N> packArray(T* orig) {
+
+template <typename T, unsigned int N> std::array<T, N> packArray(T* orig) {
   std::array<T, N> arr;
-  for (uint n = 0; n < N; n++) {
+  for (unsigned int n = 0; n < N; n++) {
     arr[n] = orig[n];
   }
   return arr;
