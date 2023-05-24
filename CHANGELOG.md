@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - READY now sends the teensy's UID64
 
+### Changed
+
+- Updated mkshft_ctrl send function to safely switch between Serial and SLIP depending on connection status
+
 ### Fixes
 
 - Unfucked version 0.0.2's segfault issue
@@ -21,9 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **This version does not work, segfaults due to an overflow issues**
 
-### Changed
-
-- Updated mkshft_ctrl send function to safely switch between Serial and SLIP depending on connection status
 
 #### Protocol
 
