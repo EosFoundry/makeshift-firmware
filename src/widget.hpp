@@ -2,14 +2,16 @@
 #define WIDGET_H_
 
 #include <Arduino.h>
+#include <tgx.h>
+
 #include <list>
 #include <math.h>
 #include <string>
-#include <tgx.h>
 #include <vector>
 #include <array>
 
 #include <fonts.hpp>
+#include <mkshft_ctrl.hpp>
 
 inline namespace mkshft_ui {
 using namespace tgx;
@@ -24,6 +26,7 @@ template <typename T, unsigned int N> std::array<T, N> packArray(T* orig) {
   }
   return arr;
 };
+
 enum WidgetType {
   W_BOX,
   W_TEXT_BOX,

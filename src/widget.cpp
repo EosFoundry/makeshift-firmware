@@ -11,6 +11,7 @@ const WidgetType WTextBox::type = W_TEXT_BOX;
 const WidgetType WProgressBar::type = W_PROGRESS_BAR;
 
 void _printBox(iBox2 b) {
+#ifdef DEBUG
   Serial.print("min: (");
   Serial.print(b.minX);
   Serial.print(",");
@@ -20,6 +21,7 @@ void _printBox(iBox2 b) {
   Serial.print(",");
   Serial.print(b.maxY);
   Serial.print(")");
+#endif
 }
 
 void Widget::setAnchor(uint16_t x, uint16_t y) { anchor = iVec2(x, y); }
