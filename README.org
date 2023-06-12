@@ -28,7 +28,7 @@ The latest releases can be found on the side bar or on the [[https://github.com/
 
 **** 3. Use the Teensy Loader to upload the HEX file
 
-
+Detailed instructions can be found on the [official Teensy website](https://www.pjrc.com/teensy/loader.html) - the loader application has not changed much, so don't mind the instructions stating that they are for windows vista.
 
 ** Building the Firmware from Source Code
 
