@@ -13,9 +13,9 @@
 #include <mkshft_core.hpp>
 #include <mkshft_display.hpp>
 #include <mkshft_led.hpp>
-#include <mkshft_ui.hpp>
 
-#define DEBUG_MKLISP 6
+#define LOGLVL_MKSHFT_LISP LOGLVL_ERROR
+
 inline namespace mkshft_lisp {
 
 enum CarKeys {
@@ -39,6 +39,7 @@ enum SexpType {
   LIST,
   FLOAT,
 };
+
 enum LerrType {
   UNKNOWN_OP,
   TYPE_ERROR,
@@ -48,6 +49,7 @@ enum LerrType {
   MISMATCH_ARGUMENTS,
   NO_ERROR,
 };
+
 const std::string LerrMsg[LerrType::NO_ERROR + 1] = {
     "Error: Unknown Operation",
     "Error: Wrong type given",
@@ -57,6 +59,7 @@ const std::string LerrMsg[LerrType::NO_ERROR + 1] = {
     "Error: No matching function for given arguments",
     "Error: No error!...???",
 };
+
 enum TokenType {
   PAR,
   SPC,
@@ -120,7 +123,22 @@ SymExp error(LerrType);
 SymExp error(LerrType, SymExp);
 SymExp error(LerrType, std::string);
 SymExp error(LerrType, SymExp, std::string);
-SymExp checkShape(SexpType, uint8_t, SymExp);
+
+/**
+ * checkShape() tests given SymExp against given SexpType array. If the shape
+ * matches the args, it returns a nil SymExp. If the shape does not match the
+ * args, it returns LerrType::TYPE_ERROR.
+ *
+ * @param SexpType shape - array of SexpType to match against
+ * @param uint8_t len - length of shape array
+ * @param SymExp args - SymExp to test
+ * @return SymExp - nil if shape matches args, LerrType::TYPE_ERROR otherwise
+ */
+SymExp checkListShape(SexpType, uint8_t, SymExp);
+
+/**
+ * inspect() returns a string representation of the given SymExp.
+ */
 SymExp inspect(SymExp);
 
 // unsafe calls where bad inputs can segfault or memleak

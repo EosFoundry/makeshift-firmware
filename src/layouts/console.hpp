@@ -3,8 +3,6 @@
 
 #include <widget.hpp>
 
-extern WTextBox contents;
-
-
+extern mkshft_ui::WBox contents;
 
 #endif

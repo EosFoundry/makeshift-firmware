@@ -1,4 +1,4 @@
-#include <makethift.hpp>
+#include <mkshft_lisp.hpp>
 
 inline namespace mkshft_lisp {
 
@@ -16,7 +16,8 @@ void init(std::function<void(std::string)> logFunc) {
 std::list<Ltoken> tokenize(std::string exp) {
   std::list<Ltoken> tokens;
   Ltoken currToken;
-#if DEBUG_MKLISP > 6
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
   log("Tokenizing expression: \"");
   log(exp);
   log("\"");
@@ -59,12 +60,12 @@ std::list<Ltoken> tokenize(std::string exp) {
       currState = SYM;
     }
 
-#if DEBUG_MKLISP > 6
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
     Serial.print("targ: ");
     Serial.print(cursorTarget);
-    Serial.print(" | crState : ");
+    Serial.print(" | crrState : ");
     Serial.print(currState);
-    Serial.print(" | lsState : ");
+    Serial.print(" | prvState : ");
     Serial.print(lastState);
 #endif
 
@@ -72,11 +73,13 @@ std::list<Ltoken> tokenize(std::string exp) {
     if (currState != lastState) {
       numDecimal = false; // reset decimal state
       if (lastState != UNDEF && lastState != SPC) {
-#if DEBUG_MKLISP > 6
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
         Serial.print(" | pushing token: \'");
         Serial.print(currToken.value.data());
         Serial.print('\'');
 #endif
+
         tokens.push_back(currToken);
       }
       currToken.type = currState;
@@ -110,9 +113,11 @@ std::list<Ltoken> tokenize(std::string exp) {
         break;
       }
     }
-#if DEBUG_MKLISP > 6
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
     Serial.println();
 #endif
+
     currToken.value.push_back(cursorTarget);
     lastState = currState;
     ++expCursor;
@@ -167,57 +172,83 @@ SymExp parseTokens(std::list<Ltoken> tokenList) {
 
 SymExp unsafe_parse(std::list<Ltoken> tokenList) {
   SymExp ret;
-  // logln("unsafe_parse entry");
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+  logln("unsafe_parse entry");
+#endif
+
+  // pop off the first and last tokens if they are parens
   if (tokenList.front().value.at(0) == LIST_OPEN &&
       tokenList.back().value.at(0) == LIST_CLOSE) {
-    // log(tokenList.front().value);
-    // log(tokenList.back().value);
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+    log(tokenList.front().value);
+    log(tokenList.back().value);
+#endif
     tokenList.pop_front();
     tokenList.pop_back();
   }
-  // log(SymExp((int)tokenList.size()));
-  if (tokenList.size() == 1) { // the default case
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+  log(SymExp((int)tokenList.size()));
+#endif
+  // list parsing starts here
+  if (tokenList.size() == 1) { // single element case
     auto token = tokenList.front();
-    // log("token type:: ");
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+    log("token type:: ");
+#endif
 
     switch (token.type) {
     case SYM: {
-      // log("SYM");
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+      log("SYM");
+#endif
       ret = SymExp(tokenList.front().value);
       break;
-    }
+    } // SYM
 
     case NUM: {
-      // log("NUM");
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+      log("NUM");
+#endif
       if (token.value.find('.') == std::string::npos) {
         ret = SymExp(atoi(token.value.data()));
       } else {
         ret = SymExp((float)atof(token.value.data()));
       }
       break;
-    }
+    } // NUM
 
     default: {
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+      log("default");
+#endif
       return error(TYPE_ERROR);
       break;
-    }
-    }
-  } else { // the recursive case
-    SymExp tmp;
+    } // default
+    } // switch
+  } else { // recurse over list case
+    SymExp tmp = SymExp();
     tmp.type = LIST;
     ret.type = LIST;
 
     auto token = tokenList.begin();
     int numTokens = tokenList.size();
     int tokensConsumed = 0;
+
     while (tokensConsumed < numTokens) {
-      // log(token->value);
-      delay(10);
+
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+    log(token->value);
+    delay(10);
+#endif
+
       switch (token->type) {
       case SYM: {
         tmp = SymExp(token->value);
         break;
-      }
+      } // SYM
 
       case NUM: {
         if (token->value.find('.') == std::string::npos) {
@@ -226,11 +257,12 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
           tmp = SymExp((float)atof(token->value.data()));
         }
         break;
-      }
+      } // NUM
 
       case PAR: {
         std::list<Ltoken> subList;
         int depth = 0;
+
         // This loop consumes tokens until it matches the first open square
         // bracket to its corresponding closing bracket, digests the contents
         // and returns a list SymExp. The depth counter starts at 1, increments
@@ -238,7 +270,9 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
         // 0, the loop has found the last close bracket and the result sublist
         // is sent to unsafe_parse() recursively.
         do {
-          // log(token->value);
+#if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
+          log(token->value);
+#endif
           if (token->type == PAR) { // tracks depth
             if (token->value.data()[0] == LIST_OPEN) {
               ++depth;
@@ -257,19 +291,16 @@ SymExp unsafe_parse(std::list<Ltoken> tokenList) {
         // the longer version: the default return for non-list atomic
         // expressions is that element
         if (parseResult.type != LIST) {
-          std::list<SymExp> tempList;
-          tempList.push_back(parseResult);
-          tmp = SymExp(tempList);
+          tmp.list.push_back(parseResult);
         } else {
-          tmp = parseResult;
+          tmp.list = parseResult.list;
         }
         break;
-      }
+      } // PAR
 
       default: {
-        tmp = SymExp();
         break;
-      }
+      } // default
       }
 
       ret.list.push_back(tmp);
@@ -540,7 +571,7 @@ SymExp error(LerrType errType, SymExp errSym, std::string msg) {
   return err;
 }
 
-SymExp checkShape(SexpType *shape, uint8_t shapeSz, SymExp args) {
+SymExp checkListShape(SexpType *shape, uint8_t shapeSz, SymExp args) {
   if (args.type != LIST) {
     return error(LerrType::TYPE_ERROR);
   } else {
@@ -587,7 +618,7 @@ SymExp inspect(SymExp s) {
 SymExp colorPixel(SymExp args) {
   const uint8_t argSz = 5;
   SexpType argShape[] = {INTEGER, INTEGER, INTEGER, INTEGER, INTEGER};
-  auto badShape = checkShape(argShape, argSz, args);
+  auto badShape = checkListShape(argShape, argSz, args);
   if (badShape.type == NIL) {
     uint8_t argInts[argSz];
     auto argSexp = args.list.begin();
@@ -603,6 +634,7 @@ SymExp colorPixel(SymExp args) {
     return error(MISMATCH_ARGUMENTS);
   }
 }
+
 SymExp unsafe_callUI(SymExp symexp) {
   // if (symexp.type == LIST && symexp.data.begin()->type == SYMBOL) {
   //   auto sexpItr = symexp.data.begin();

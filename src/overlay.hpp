@@ -4,12 +4,13 @@
 #include <widget.hpp>
 
 inline namespace mkshft_ui {
-class Overlay : public Widget {
+class Overlay : public Widget 
+{
 public:
   using Widget::Widget;
   
   uint32_t fadeTimeMs = 400;
 };
-} // namespace mkshft_display
+} // namespace mkshft_ui
 
 #endif

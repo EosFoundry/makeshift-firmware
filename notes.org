@@ -35,7 +35,7 @@ Customizing the display layouts will require some additional work on top of the 
 Currently there's not enough memory on the teensy to fully save images.
 
 * Custom shapes
-The firmware is all C code, which means that generating 'custom' graphic elements will require the firmware to accept preset commands with a high level of customization, or the firmware to include an interpreter for the graphics library and translate it on-the-fly to graphic elements. This is a very hacky way of providing programmability.
+The firmware is all C/++ code, which means that generating 'custom' graphic elements will require the firmware to accept preset commands with a high level of customization, or the firmware to include an interpreter for the graphics library and translate it on-the-fly to graphic elements. This is a very hacky way of providing programmability.
 
 If the layouts are somewhat fixed, then the variables for position/size/colour etc. can be easily reset from the serial line. The only issue is to change the layout itself in terms of objects present - that would be very difficult without recompiling and uploading.
 

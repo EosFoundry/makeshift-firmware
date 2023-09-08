@@ -4,6 +4,13 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
+#define LOGLVL_FATAL 0
+#define LOGLVL_ERROR 1
+#define LOGLVL_WARN 2
+#define LOGLVL_INFO 3
+#define LOGLVL_DEBUG 4
+#define LOGLVL_TRACE 5
+
 
 inline namespace core {
 const uint8_t deviceID = 0x02;

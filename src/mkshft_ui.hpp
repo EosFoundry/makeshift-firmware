@@ -7,13 +7,11 @@
 #include <string>
 #include <vector>
 
-#include <overlay.hpp>
-#include <widget.hpp>
 
+#include <widget.hpp>
 #include <splash565.h>
 
-inline namespace mkshft_ui {
-
+namespace mkshft_ui {
 /**
  * Layout widget
  */
@@ -21,7 +19,7 @@ class Layout {
 public:
   Layout(std::string id) : id(id){};
 
-  std::vector<std::string> renderingOrder = {};
+  std::vector<std::string> renderingOrder;
   std::map<std::string, Widget *> renderedWidgets;
   std::map<std::string, WProgressBar> progressBars;
   std::map<std::string, WTextBox> textBoxes;

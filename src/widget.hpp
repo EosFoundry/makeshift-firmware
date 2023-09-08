@@ -11,9 +11,8 @@
 #include <array>
 
 #include <fonts.hpp>
-#include <mkshft_ctrl.hpp>
 
-inline namespace mkshft_ui {
+namespace mkshft_ui {
 using namespace tgx;
 
 uint8_t smallest(uint8_t, uint8_t, uint8_t) ;

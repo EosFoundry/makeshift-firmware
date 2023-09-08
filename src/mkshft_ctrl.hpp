@@ -8,9 +8,11 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <functional>
 
-#include <makethift.hpp>
 #include <mkshft_core.hpp>
+
+#define LOGLVL_MKSHFT_CTRL LOGLVL_DEBUG
 
 inline namespace mkshft_ctrl {
 
@@ -26,7 +28,7 @@ enum MessageType {
   DISCONNECT,
 };
 
-extern uint8_t connected;
+extern bool connected;
 
 bool getWidgets();
 
@@ -42,13 +44,11 @@ void sendReady();
 
 void sendString(std::string);
 void sendLine(std::string);
+void sendByte(MessageType t);
 
 // wraps PacketSerial.send with a connection check
 void send(MessageType, const uint8_t *, size_t);
 void sendRaw(const uint8_t *, size_t);
-
-void onPacketReceived(const uint8_t *, size_t);
-void handleSymExp(std::string);
 
 } // namespace mkshft_ctrl
 
