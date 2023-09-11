@@ -14,7 +14,7 @@
 #include <mkshft_display.hpp>
 #include <mkshft_led.hpp>
 
-#define LOGLVL_MKSHFT_LISP LOGLVL_ERROR
+#define LOGLVL_MKSHFT_LISP LOGLVL_TRACE
 
 inline namespace mkshft_lisp {
 
@@ -100,6 +100,7 @@ void init(std::function<void(std::string)> logFunc);
 
 std::list<Ltoken> tokenize(std::string);
 SymExp matchParens(std::list<Ltoken>);
+SymExp wrapMultipleExpIntoList(std::list<Ltoken> tokenList);
 SymExp parseTokens(std::list<Ltoken>);
 
 // library

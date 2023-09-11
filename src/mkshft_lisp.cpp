@@ -20,7 +20,7 @@ std::list<Ltoken> tokenize(std::string exp) {
 #if LOGLVL_MKSHFT_LISP >= LOGLVL_TRACE
   log("Tokenizing expression: \"");
   log(exp);
-  log("\"");
+  logln("\"");
 #endif
 
   auto expCursor = exp.begin();
@@ -160,10 +160,37 @@ SymExp matchParens(std::list<Ltoken> tokenList) {
   return SymExp(depth);
 }
 
+SymExp wrapMultipleExpIntoList(std::list<Ltoken> tokenList) {
+  int numOfExps = 0;
+  int netParens = 0;
+  for (auto token : tokenList) {
+    switch (token.type) {
+    case PAR:
+      if (*token.value.begin() == CarKeys::LIST_OPEN) {
+        ++netParens;
+      }
+      if (*token.value.begin() == CarKeys::LIST_CLOSE) {
+        ++numOfExps;
+        --netParens;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  return SymExp(numOfExps);
+}
+
 SymExp parseTokens(std::list<Ltoken> tokenList) {
   // logln("parser entry point");
   SymExp parenErr = matchParens(tokenList);
-  if (parenErr.type != ERROR) {
+  SymExp numOfExps = wrapMultipleExpIntoList(tokenList);
+
+
+  if (parenErr.type != ERROR && numOfExps.type == INTEGER) {
+    if (numOfExps.numInt > 1){
+      //TODO: implement multiple expression parsing
+    }
     return unsafe_parse(tokenList);
   } else {
     return parenErr;

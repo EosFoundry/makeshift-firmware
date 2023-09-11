@@ -1,5 +1,3 @@
-#define LOGLVL_MKSHFT_MAIN LOGLVL_DEBUG
-#define SLOWDOWN 1
 
 static char *serialNumber;
 
@@ -22,8 +20,8 @@ static char *serialNumber;
 #include <mkshft_led.hpp>
 #include <mkshft_ui.hpp>
 
-#ifdef DEBUG
-#endif
+#define LOGLVL_MKSHFT_MAIN LOGLVL_DEBUG
+#define SLOWDOWN 1
 
 // HID definitions
 // #define VENDOR_ID               0x16BF
@@ -243,24 +241,23 @@ void ledUpdate()
 #endif
 }
 
-void onPacketReceived(const uint8_t *buffer, size_t size) {
+void onPacketReceived(const uint8_t *buffer, size_t bufSz) {
   using namespace mkshft_ctrl;
   MessageType header = (MessageType)buffer[0];
 
-#if LOGLVL_MKSHFT_MAIN <= LOGLVL_DEBUG
+#if LOGLVL_MKSHFT_MAIN >= LOGLVL_TRACE
   // start debug message
-  std::string msg = "Got packet: ";
+  std::string msg = "Got packet: '";
   send(STRING, (uint8_t *)msg.data(), msg.length());
-  send(STRING, buffer, size);
-  msg = " of size ";
+  send(STRING, buffer, bufSz);
+  msg = "' of size ";
   uint8_t szStr[10];
   for(int i = 0; i < 10; i++) {szStr[i] = 0;}
-  sprintf(szStr, "%u", size);
+  sprintf(szStr, "%u", bufSz);
   send(STRING, (uint8_t *)msg.data(), msg.length());
   send(STRING, szStr, 10);
+  sendLine("");
 #endif
-
-  // if(size == 1) {header = MessageType::PING}
 
   switch (header) {
   case MessageType::PING: {
@@ -268,12 +265,29 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
     break;
   }
   case MessageType::STRING: {
+#if LOGLVL_MKSHFT_MAIN >= LOGLVL_DEBUG
+    // start debug message
+    std::string msg = "Got packet: '";
+    send(STRING, (uint8_t *)msg.data(), msg.length());
+    send(STRING, buffer, bufSz);
+    msg = "' of size ";
+    uint8_t szStr[10];
+    for (int i = 0; i < 10; i++) {
+      szStr[i] = 0;
+    }
+    sprintf(szStr, "%u", bufSz);
+    send(STRING, (uint8_t *)msg.data(), msg.length());
+    send(STRING, szStr, 10);
+    sendLine("");
+#endif
     // convert buffer to string
-    std::string exp;
-    exp.assign((char *)buffer, size);
     // push the string back from header
-    exp = exp.substr(1);
-    handleSymExp(exp);
+    if (bufSz > 1){
+      std::string exp;
+      exp.assign((char *)buffer, bufSz);
+      exp = exp.substr(1);
+      handleSymExp(exp);
+    }
     break;
   }
   case MessageType::ACK:
@@ -292,9 +306,9 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
   }
 }
 
-void handleSymExp(std::string exp) {
+void handleSymExp(std::string expStr) {
 
-#if LOGLVL_MKSHFT_MAIN <= LOGLVL_DEBUG
+#if LOGLVL_MKSHFT_MAIN >= LOGLVL_DEBUG
     // // start debug message
     // std::string msg;
 
@@ -311,19 +325,19 @@ void handleSymExp(std::string exp) {
     // msg += buf;
 #endif
 
-    auto tokens = mkshft_lisp::tokenize(exp);
+    auto tokens = mkshft_lisp::tokenize(expStr);
 
     SymExp res = mkshft_lisp::parseTokens(tokens);
     if (res.type != SexpType::ERROR)
     {
-      log("Parsing successful");
-      auto symRes = toSym(res);
-      log(symRes);
+      mkshft_lisp::log("Parsing successful");
+      auto symRes = mkshft_lisp::toSym(res);
+      mkshft_lisp::logln(symRes);
     }
 
-#if LOGLVL_MKSHFT_MAIN <= LOGLVL_DEBUG
+#if LOGLVL_MKSHFT_MAIN >= LOGLVL_DEBUG
     std::string msg = "tokenized exp";
-    sendString(msg);
+    mkshft_ctrl::sendLine(msg);
 
     std::string tkn;
     for (auto t : tokens) {
@@ -347,8 +361,9 @@ void handleSymExp(std::string exp) {
       }
       tkn += " | data: ";
       tkn.append(t.value);
-      sendString(tkn);
+      mkshft_ctrl::sendLine(tkn);
     }
+    // mkshft_ctrl::sendLine("");
 #endif
 
     // Serial.write(buffer, size);
